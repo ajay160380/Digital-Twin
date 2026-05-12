@@ -14,12 +14,12 @@ from typing import Any
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
-from django.http import HttpRequest, JsonResponse
+from django.http import HttpRequest, JsonResponse, StreamingHttpResponse
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_http_methods
 
 from .models import PastChoice, TwinSettings, UserPreference
-from .logic import get_ai_debate, get_digital_twin_prediction, get_funny_roast
+from .logic import get_ai_debate, get_digital_twin_prediction, get_funny_roast, stream_digital_twin_prediction
 
 logger = logging.getLogger(__name__)
 
@@ -137,6 +137,8 @@ def twin_dashboard(request: HttpRequest):
         action = _detect_action(request)
 
         if action == "get_prediction":
+            if request.POST.get("stream") == "1":
+                return _handle_prediction_stream(request, user)
             return _handle_prediction(request, user)
 
         if action == "get_debate":
@@ -197,15 +199,46 @@ def _handle_prediction(request: HttpRequest, user) -> JsonResponse:
         prediction = get_digital_twin_prediction(user, scenario)
     except Exception as exc:
         logger.exception("Prediction failed for user %s", user.username)
-        return _json_ok({"prediction": f"Prediction error: {exc}"})
+        return _json_error(f"Prediction error: {exc}", status=500)
 
     try:
         PastChoice.objects.create(user=user, scenario=scenario, choice_made=prediction)
         logger.debug("Prediction saved for user %s", user.username)
     except Exception:
-        logger.exception("Prediction save failed for user %s", user.username)
+        logger.exception("Prediction was generated but could not be saved for user %s", user.username)
 
     return _json_ok({"prediction": prediction})
+
+
+def _handle_prediction_stream(request: HttpRequest, user) -> StreamingHttpResponse | JsonResponse:
+    """AJAX handler: stream an AI twin prediction safely."""
+    scenario = request.POST.get("scenario", "").strip()
+
+    if not scenario:
+        return _json_error("Scenario cannot be empty.")
+    if len(scenario) > MAX_SCENARIO_LENGTH:
+        return _json_error(f"Scenario too long (max {MAX_SCENARIO_LENGTH} characters).")
+
+    def event_stream():
+        collected_chunks: list[str] = []
+        try:
+            for chunk in stream_digital_twin_prediction(user, scenario):
+                if chunk:
+                    collected_chunks.append(chunk)
+                    yield chunk
+        except Exception as exc:
+            logger.exception("Streaming prediction failed for user %s", user.username)
+            yield f"\nPrediction stream error: {exc}"
+            return
+
+        prediction = "".join(collected_chunks).strip()
+        if prediction:
+            try:
+                PastChoice.objects.create(user=user, scenario=scenario, choice_made=prediction)
+            except Exception:
+                logger.exception("Streaming prediction was generated but could not be saved for user %s", user.username)
+
+    return StreamingHttpResponse(event_stream(), content_type="text/plain; charset=utf-8")
 
 
 def _handle_debate(request: HttpRequest, user) -> JsonResponse:
@@ -222,7 +255,7 @@ def _handle_debate(request: HttpRequest, user) -> JsonResponse:
         script = get_ai_debate(user, topic, opponent)
     except Exception as exc:
         logger.exception("Debate generation failed for user %s", user.username)
-        return _json_ok({"script": f"Debate error: {exc}"})
+        return _json_error(f"Debate error: {exc}", status=500)
 
     return _json_ok({"script": script})
 

@@ -97,7 +97,6 @@ body::before { content: ''; position: fixed; inset: 0; background-image: linear-
 .stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1.2px; font-weight: 500; }
 
 /* ── Card ── */
-/* Added a tighter margin for cards to reduce gaps */
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 16px; transition: border-color var(--transition), background var(--transition); }
 .card:hover { border-color: rgba(255,255,255,0.1); }
 
@@ -387,7 +386,7 @@ body::before { content: ''; position: fixed; inset: 0; background-image: linear-
       </div>
     </div>
 
-    <form id="twinSettingsForm" method="POST" onsubmit="handleTwinSettingsSubmit(event)">
+    <form id="twinSettingsForm" method="POST">
       {% csrf_token %}
       <input type="hidden" name="update_twin_settings" value="1">
       
@@ -768,17 +767,17 @@ async function getPrediction() {
       body: formData
     });
 
-    const data = await res.json();
-
-    if (!res.ok || data.ok === false) {
-      throw new Error(data.error || 'Django Backend Error: ' + res.status);
+    if (!res.ok) throw new Error('Django Backend Error: ' + res.status);
+    const result = await res.json();
+    
+    // 🔥 YAHAN FIX KIYA HAI: result.data.prediction use kiya
+    if (result.ok) {
+        showOutput(result.data.prediction, scenario);
+        triggerRoastMeter(result.data.prediction); 
+        savePrediction(scenario, result.data.prediction);
+    } else {
+        throw new Error(result.error);
     }
-
-    const prediction = data.prediction || 'No prediction returned from server.';
-
-    showOutput(prediction, scenario);
-    triggerRoastMeter(prediction);
-    savePrediction(scenario, prediction);
     
   } catch (err) {
     showError(err.message);
@@ -793,6 +792,14 @@ function showTyping() {
     <div class="output-card" style="animation: fadeUp 0.3s ease;">
       <div class="output-header"><div class="output-tag"><span class="status-dot"></span> Twin soch raha hai…</div></div>
       <div class="typing-indicator" style="margin-top: 8px;"><span></span><span></span><span></span></div>
+    </div>`;
+}
+
+function showError(msg) {
+  document.getElementById('outputArea').innerHTML = `
+    <div class="output-card" style="border-color: #ff4757; animation: fadeUp 0.3s ease;">
+      <div class="output-header"><div class="output-tag" style="color:#ff4757;">⚠️ Error</div></div>
+      <p style="color: #ff4757; font-size: 14px;">${msg}</p>
     </div>`;
 }
 
@@ -891,61 +898,45 @@ async function startDebate() {
       body: formData
     });
 
-    const data = await res.json();
+    const result = await res.json();
+    area.innerHTML = ''; 
 
-    if (!res.ok || data.ok === false) {
-      throw new Error(data.error || 'Debate request failed');
+    // 🔥 YAHAN BHI FIX KIYA HAI: result.data.script use kiya
+    if (result.ok) {
+        result.data.script.forEach((line, index) => {
+          setTimeout(() => {
+            const isTwin = line.speaker === "Twin";
+            const align = isTwin ? 'flex-end' : 'flex-start';
+            const bgColor = isTwin ? 'var(--accent-dim)' : 'var(--surface)';
+            const borderColor = isTwin ? 'var(--accent)' : '#ff4757';
+            const nameColor = isTwin ? 'var(--accent)' : '#ff4757';
+            
+            const bubble = document.createElement('div');
+            bubble.style.cssText = `
+              align-self: ${align}; 
+              background: ${bgColor}; 
+              border: 1px solid ${borderColor}; 
+              padding: 12px 16px; 
+              border-radius: 12px; 
+              max-width: 85%;
+              animation: fadeUp 0.4s ease;
+            `;
+            bubble.innerHTML = `
+              <div style="font-size: 11px; font-weight: bold; color: ${nameColor}; margin-bottom: 4px; text-transform: uppercase;">
+                ${isTwin ? '🤖 Mera Twin' : '🥊 ' + opponent}
+              </div>
+              <div style="font-size: 14px; line-height: 1.5; color: var(--text);">${line.text}</div>
+            `;
+            area.appendChild(bubble);
+            area.scrollTop = area.scrollHeight; 
+          }, index * 1800); 
+        });
+    } else {
+        throw new Error(result.error);
     }
-
-    let script = data.script || [];
-
-    if (typeof script === 'string') {
-      script = script
-        .split('\n')
-        .filter(Boolean)
-        .map((text, index) => ({
-          speaker: index % 2 === 0 ? 'Twin' : opponent,
-          text
-        }));
-    }
-
-    if (!Array.isArray(script) || script.length === 0) {
-      throw new Error('Debate script empty aaya');
-    }
-
-    area.innerHTML = '';
-
-    script.forEach((line, index) => {
-      setTimeout(() => {
-        const isTwin = line.speaker === "Twin";
-        const align = isTwin ? 'flex-end' : 'flex-start';
-        const bgColor = isTwin ? 'var(--accent-dim)' : 'var(--surface)';
-        const borderColor = isTwin ? 'var(--accent)' : '#ff4757';
-        const nameColor = isTwin ? 'var(--accent)' : '#ff4757';
-        
-        const bubble = document.createElement('div');
-        bubble.style.cssText = `
-          align-self: ${align}; 
-          background: ${bgColor}; 
-          border: 1px solid ${borderColor}; 
-          padding: 12px 16px; 
-          border-radius: 12px; 
-          max-width: 85%;
-          animation: fadeUp 0.4s ease;
-        `;
-        bubble.innerHTML = `
-          <div style="font-size: 11px; font-weight: bold; color: ${nameColor}; margin-bottom: 4px; text-transform: uppercase;">
-            ${isTwin ? '🤖 Mera Twin' : '🥊 ' + opponent}
-          </div>
-          <div style="font-size: 14px; line-height: 1.5; color: var(--text);">${escapeHtml(line.text)}</div>
-        `;
-        area.appendChild(bubble);
-        area.scrollTop = area.scrollHeight; 
-      }, index * 1800); 
-    });
 
   } catch (err) {
-    area.innerHTML = `<p style="color: red; text-align:center;">${escapeHtml(err.message || 'API me kuch lafda ho gaya bhai!')}</p>`;
+    area.innerHTML = `<p style="color: #ff4757; text-align:center;">Error: ${err.message}</p>`;
   } finally {
     btn.disabled = false;
     btn.innerHTML = '<span>🔥</span> Fight Start Kar';
@@ -996,11 +987,7 @@ function showToast(msg) {
   document.body.appendChild(t);
   setTimeout(() => t.remove(), 2400);
 }
-function escapeHtml(value) {
-  const div = document.createElement('div');
-  div.textContent = value == null ? '' : String(value);
-  return div.innerHTML;
-}
+function escapeHtml(str) { return str.replace(/&/g,'&').replace(/</g,'<').replace(/>/g,'>').replace(/"/g,'"'); }
 function timeAgo(ts) {
   const d = Date.now() - ts;
   if (d < 60000) return 'just now';
@@ -1010,40 +997,4 @@ function timeAgo(ts) {
 }
 </script>
 </body>
-</html>    
-async function handleTwinSettingsSubmit(e) {
-  e.preventDefault();
-
-  const form = e.target;
-  const btn = form.querySelector('button[type="submit"]');
-  const oldHtml = btn.innerHTML;
-
-  btn.disabled = true;
-  btn.innerHTML = '<span>⏳</span> Saving...';
-
-  try {
-    const formData = new FormData(form);
-
-    const res = await fetch(window.location.href, {
-      method: 'POST',
-      headers: {
-        'X-CSRFToken': '{{ csrf_token }}',
-        'X-Requested-With': 'XMLHttpRequest'
-      },
-      body: formData
-    });
-
-    const data = await res.json();
-
-    if (!res.ok || data.ok === false) {
-      throw new Error(data.error || 'Settings save failed');
-    }
-
-    showToast('Personality settings saved! 🎭');
-  } catch (err) {
-    showToast(err.message || 'Settings save failed');
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = oldHtml;
-  }
-}
+</html>

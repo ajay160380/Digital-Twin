@@ -7,6 +7,7 @@ import logging
 import hashlib
 import random
 import datetime
+from pathlib import Path
 from dataclasses import dataclass, field
 from functools import lru_cache
 from typing import TYPE_CHECKING, Iterator
@@ -17,9 +18,20 @@ from groq import Groq, APIConnectionError, APIStatusError, RateLimitError
 if TYPE_CHECKING:
     from django.contrib.auth.base_user import AbstractBaseUser
 
-load_dotenv()
-
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# 🟢 FORCE LOAD .ENV FILE (100% BULLETPROOF)
+# ---------------------------------------------------------------------------
+# Ye code automatically tere project root (jahan manage.py hai) me .env dhoondhega
+BASE_DIR = Path(__file__).resolve().parent.parent
+ENV_PATH = BASE_DIR / '.env'
+
+if ENV_PATH.exists():
+    load_dotenv(dotenv_path=ENV_PATH)
+    print(f"✅ SUCCESS: .env file found at {ENV_PATH}")
+else:
+    print(f"🔴 WARNING: .env file NOT FOUND at {ENV_PATH}. API might fail locally.")
 
 
 # ---------------------------------------------------------------------------
@@ -100,26 +112,23 @@ _OPENERS = (
 
 
 # ---------------------------------------------------------------------------
-# Groq client — API Fix Implementation
+# Groq client — Safe Initialization
 # ---------------------------------------------------------------------------
 
 @lru_cache(maxsize=1)
 def _groq_client() -> Groq:
-    """Create a Groq client using the API key configured in the deployment environment."""
+    """Safely fetch API key from Environment Variables or .env file."""
     api_key = os.getenv("GROQ_API_KEY", "").strip()
 
     if not api_key:
-        logger.error(
-            "CRITICAL: GROQ_API_KEY is missing. Set it in Render Dashboard -> Service -> Environment."
-        )
-        raise EnvironmentError(
-            "GROQ_API_KEY is missing. Add it in Render Dashboard -> Service -> Environment."
-        )
+        logger.error(f"CRITICAL: GROQ_API_KEY is missing. Checked path: {ENV_PATH}")
+        raise EnvironmentError(f"GROQ_API_KEY is missing. Bhai, check kar ki manage.py wale folder me .env hai ya nahi.")
 
     if not api_key.startswith("gsk_"):
-        logger.error("CRITICAL: GROQ_API_KEY exists but does not look like a valid Groq key.")
-        raise EnvironmentError("GROQ_API_KEY is invalid. Paste the full Groq key starting with gsk_.")
+        logger.error("CRITICAL: GROQ_API_KEY does not start with 'gsk_'.")
+        raise EnvironmentError("GROQ_API_KEY is invalid. Asli key paste kar bhai.")
 
+    print(f"🚀 API Key Loaded Successfully (Starts with: {api_key[:8]}...)")
     return Groq(api_key=api_key)
 
 
@@ -337,24 +346,16 @@ def _call_llm(req: PredictionRequest) -> str:
                 top_p=_CFG.top_p,
             )
             response = completion.choices[0].message.content.strip()
-            logger.debug(
-                "LLM OK [attempt=%d, profile=%s, tokens=%d]",
-                attempt,
-                req.profile.fingerprint,
-                completion.usage.total_tokens if completion.usage else -1,
-            )
             return response
 
         except RateLimitError as exc:
             last_exc = exc
             delay = _CFG.retry_base_delay * (2 ** (attempt - 1))
-            logger.warning("Rate limited — waiting %.1fs (attempt %d/%d)", delay, attempt, _CFG.max_retries)
             time.sleep(delay)
 
         except APIConnectionError as exc:
             last_exc = exc
             delay = _CFG.retry_base_delay * attempt
-            logger.warning("Connection error — retrying in %.1fs (attempt %d/%d)", delay, attempt, _CFG.max_retries)
             time.sleep(delay)
 
     raise last_exc  # type: ignore[misc]
@@ -434,7 +435,7 @@ def get_digital_twin_prediction(user: AbstractBaseUser, scenario: str) -> str:
 
     except APIStatusError as exc:
         logger.error("Groq API %d: %s", exc.status_code, exc.message)
-        return f"Groq API error aa gaya (HTTP {exc.status_code}) — API key, billing/quota, ya model name check kar."
+        return f"Groq API error aa gaya (HTTP {exc.status_code}) — API key check kar."
 
     except ValueError as exc:
         return f"Input galat hai: {exc}"
@@ -467,15 +468,15 @@ def stream_digital_twin_prediction(user: AbstractBaseUser, scenario: str) -> Ite
 
     except APIConnectionError:
         logger.warning("Groq streaming unreachable.")
-        yield "Network ya Groq connection issue hai — Render logs check kar."
+        yield "Network ya Groq connection issue hai."
 
     except APIStatusError as exc:
         logger.error("Groq streaming API %d: %s", exc.status_code, exc.message)
-        yield f"Groq API error aa gaya (HTTP {exc.status_code}) — API key, billing/quota, ya model name check kar."
+        yield f"Groq API error aa gaya (HTTP {exc.status_code})."
 
     except Exception:
         logger.exception("Streaming error in stream_digital_twin_prediction")
-        yield "Stream toot gayi yaar — Render logs me exact error dekh."
+        yield "Stream toot gayi yaar."
 
 
 def get_ai_debate(user: AbstractBaseUser, topic: str, opponent_type: str) -> list[dict]:
@@ -502,8 +503,6 @@ You are an expert scriptwriter. Write a funny, aggressive 4-dialogue debate in H
 Speaker 1 ('Opponent'): {opp_persona}
 Speaker 2 ('Twin'): Name is {twin_name}. Traits: {profile.traits}, Sleep: {profile.sleep}, Diet: {profile.diet}.
 
-Topic of debate: "{topic}"
-
 RULES:
 1. Opponent starts the debate.
 2. Twin defends itself using its lazy/student traits.
@@ -515,11 +514,16 @@ RULES:
     {{"speaker": "Twin", "text": "..."}}
 ]
 """
+    
+    user_prompt = f"Topic of debate: '{topic}'. Jaldi se first dialogue bol aur behas start kar. Sirf JSON format dena."
 
     try:
         completion = _groq_client().chat.completions.create(
             model=_CFG.model,
-            messages=[{"role": "system", "content": system_prompt}],
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt} 
+            ],
             temperature=0.8,
             max_tokens=600,
         )
@@ -550,7 +554,7 @@ def get_funny_roast(mood: str) -> str:
     roasts = {
         "Happy": [
             "Zyada khush mat ho, kal Monday hai aur attendance 75% karni hai.",
-            "Itni khushi? Lagta hai Manyata ne code review pass kar diya!"
+            "Itni khushi? Lagta hai code review pass ho gaya!"
         ],
         "Tired": [
             "Bhai, aankhein band kar aur so ja. Coding tere bas ki nahi lag rahi abhi.",
@@ -559,7 +563,7 @@ def get_funny_roast(mood: str) -> str:
         "Stressed": [
             "Stress kyu le raha hai? Backend fati hai ya internal exams aa gaye?",
             "Itna stress lega toh baal ud jayenge, phir 'Digital Twin' bhi pehchanne se mana kar dega.",
-            "Bhai relax! Coffee pi, stress lene se Django ke bugs solve nahi hote."
+            "Bhai relax! Coffee pi, stress lene se bugs solve nahi hote."
         ],
         "Focused": [
             "Oho! Itna focus? Lagta hai aaj pura IoT project ek hi baar mein khatam karega.",
@@ -571,7 +575,7 @@ def get_funny_roast(mood: str) -> str:
             "Motivational video dekh ke aaya hai kya? Do ghante mein utar jayegi."
         ],
         "Chill": [
-            "Itna chill? BBD University ke garden mein baitha hai kya?",
+            "Itna chill? BBD ke canteen/garden mein baitha hai kya?",
             "Exam ke time bhi itna hi chill rehna, tab maza aayega."
         ]
     }
