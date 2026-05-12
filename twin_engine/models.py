@@ -24,7 +24,7 @@ class PastChoice(models.Model):
     
 class TwinSettings(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    bot_nickname = models.CharField(max_length=50, default="PaisaMitra")
+    bot_nickname = models.CharField(max_length=50, default="My Twin", help_text="Nickname for your digital twin in conversations")
     
     tone_level = models.IntegerField(default=2) 
     

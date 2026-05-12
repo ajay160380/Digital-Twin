@@ -17,7 +17,7 @@ class Migration(migrations.Migration):
             name='TwinSettings',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('bot_nickname', models.CharField(default='PaisaMitra', max_length=50)),
+                ('bot_nickname', models.CharField(default='My Twin', max_length=50, help_text='Nickname for your digital twin in conversations')),
                 ('tone_level', models.IntegerField(default=2)),
                 ('preferred_language', models.CharField(default='Hinglish', max_length=20)),
                 ('custom_instructions', models.TextField(blank=True, null=True)),

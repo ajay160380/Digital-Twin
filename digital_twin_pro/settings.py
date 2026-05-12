@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-# .env file load karne ke liye
+
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -84,18 +84,16 @@ USE_TZ = True
 # ==========================================
 # --- STATIC FILES SETTINGS (FIXED) ---
 # ==========================================
-STATIC_URL = '/static/'  # ✅ Slash add kar diya
+STATIC_URL = '/static/'  
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles') # ✅ Render ke liye perfect
 
-# Ise abhi comment kar diya hai taaki folder na milne ka error na aaye
-# STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # ==========================================
 # --- AUTHENTICATION SETTINGS FIX ---
 # ==========================================
-# Ab ye tumhe tumhare custom dark mode login par bhejega!
 LOGIN_URL = '/accounts/login/'
-LOGIN_REDIRECT_URL = '/'  # Login ke baad dashboard par
-LOGOUT_REDIRECT_URL = '/accounts/login/' # Logout ke baad wapas login parsss
+LOGIN_REDIRECT_URL = '/' 
+LOGOUT_REDIRECT_URL = '/accounts/login/'
