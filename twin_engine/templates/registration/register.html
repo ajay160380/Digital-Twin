@@ -1,43 +1,414 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Register - Digital Twin</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create Account - Digital Twin</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
 <style>
-  body { background: #0a0b0f; color: #eef0f8; font-family: 'Space Grotesk', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-  .auth-card { background: #111318; border: 1px solid rgba(255,255,255,0.07); padding: 40px; border-radius: 16px; width: 100%; max-width: 400px; text-align: center; margin: 40px 0; }
-  h2 { color: #35f1c8; margin-bottom: 5px; }
-  p { color: #5a6280; font-size: 14px; margin-bottom: 25px; }
-  .field { margin-bottom: 15px; text-align: left; }
-  label { font-size: 12px; color: #8892b0; font-weight: 600; text-transform: uppercase; }
-  input { width: 100%; padding: 12px; margin-top: 5px; background: #181c24; border: 1px solid rgba(255,255,255,0.07); border-radius: 8px; color: white; font-family: 'Space Grotesk'; outline: none; box-sizing: border-box; }
-  input:focus { border-color: #35f1c8; }
-  .btn { width: 100%; background: #35f1c8; color: #0a0b0f; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; font-family: 'Space Grotesk'; transition: 0.2s; }
-  .helptext { font-size: 10px; color: #5a6280; margin-top: 4px; display: block; }
-  ul { list-style: none; padding: 0; margin: 0 0 10px 0; color: #f17035; font-size: 12px; }
-  .link { color: #c8f135; text-decoration: none; font-size: 13px; display: block; margin-top: 15px; }
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    min-height:100vh;
+    font-family:'Inter',sans-serif;
+    background:#050816;
+    overflow:hidden;
+    color:white;
+}
+
+/* Background */
+
+.bg{
+    position:fixed;
+    inset:0;
+    background:
+    radial-gradient(circle at 15% 20%,rgba(0,229,255,.18),transparent 22%),
+    radial-gradient(circle at 85% 80%,rgba(122,92,255,.25),transparent 28%),
+    linear-gradient(135deg,#050816,#0c1027 45%,#13082f);
+}
+
+.bg::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background-image:
+    linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);
+    background-size:42px 42px;
+}
+
+/* Layout */
+
+.wrapper{
+    position:relative;
+    z-index:2;
+    width:100%;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:40px;
+}
+
+/* Floating Glass Card */
+
+.register-card{
+    width:100%;
+    max-width:1100px;
+    display:grid;
+    grid-template-columns:1fr 480px;
+    border-radius:34px;
+    overflow:hidden;
+    background:rgba(255,255,255,.05);
+    border:1px solid rgba(255,255,255,.08);
+    backdrop-filter:blur(24px);
+    box-shadow:
+    0 30px 80px rgba(0,0,0,.45),
+    inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+/* LEFT SIDE */
+
+.left{
+    padding:70px;
+    position:relative;
+    overflow:hidden;
+}
+
+.logo{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    margin-bottom:90px;
+}
+
+.logo-box{
+    width:48px;
+    height:48px;
+    border-radius:16px;
+    background:linear-gradient(135deg,#6b7cff,#53e5ff);
+    display:grid;
+    place-items:center;
+    font-weight:800;
+    box-shadow:0 15px 35px rgba(83,229,255,.25);
+}
+
+.logo span{
+    font-size:24px;
+    font-weight:800;
+}
+
+.tag{
+    display:inline-flex;
+    padding:12px 18px;
+    border-radius:999px;
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.08);
+    color:#cbc8e8;
+    font-size:13px;
+    margin-bottom:26px;
+}
+
+.left h1{
+    font-size:72px;
+    line-height:.95;
+    letter-spacing:-.07em;
+    margin-bottom:28px;
+}
+
+.left h1 span{
+    background:linear-gradient(135deg,#fff,#7fe8ff,#9d8dff);
+    -webkit-background-clip:text;
+    color:transparent;
+}
+
+.left p{
+    max-width:540px;
+    color:#b6b4c8;
+    font-size:17px;
+    line-height:1.8;
+}
+
+/* Decorative circle */
+
+.circle{
+    position:absolute;
+    width:420px;
+    height:420px;
+    border-radius:50%;
+    background:radial-gradient(circle,#6b7cff,#2c145d);
+    opacity:.22;
+    right:-120px;
+    bottom:-140px;
+    filter:blur(20px);
+}
+
+/* RIGHT */
+
+.right{
+    padding:48px;
+    background:
+    linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.03));
+    border-left:1px solid rgba(255,255,255,.08);
+}
+
+.right small{
+    color:#83efff;
+    font-weight:800;
+    letter-spacing:.16em;
+    font-size:11px;
+}
+
+.right h2{
+    font-size:40px;
+    margin-top:16px;
+    letter-spacing:-.05em;
+}
+
+.subtitle{
+    color:#aaa7c4;
+    margin:14px 0 32px;
+    line-height:1.7;
+}
+
+/* Form */
+
+.field{
+    margin-bottom:18px;
+}
+
+label{
+    display:block;
+    margin-bottom:8px;
+    color:#eceaff;
+    font-size:13px;
+    font-weight:700;
+}
+
+input{
+    width:100%;
+    height:56px;
+    border-radius:18px;
+    border:1px solid rgba(255,255,255,.08);
+    background:rgba(6,10,24,.82);
+    color:white;
+    padding:0 16px;
+    outline:none;
+    font-size:15px;
+    font-family:'Inter',sans-serif;
+    transition:.25s;
+}
+
+input::placeholder{
+    color:#6f6b88;
+}
+
+input:focus{
+    border-color:#7fe8ff;
+    box-shadow:0 0 0 4px rgba(127,232,255,.12);
+}
+
+.helptext{
+    display:block;
+    margin-top:7px;
+    color:#8884a2;
+    font-size:11px;
+    line-height:1.5;
+}
+
+ul{
+    list-style:none;
+    padding:0;
+    margin-top:8px;
+    color:#ff9f9f;
+    font-size:12px;
+}
+
+/* Button */
+
+.btn{
+    width:100%;
+    height:58px;
+    border:none;
+    border-radius:18px;
+    margin-top:10px;
+    cursor:pointer;
+    font-size:15px;
+    font-weight:800;
+    font-family:'Inter',sans-serif;
+    background:linear-gradient(135deg,#7fe8ff,#c2f7ff,#9d8dff);
+    color:#050816;
+    box-shadow:0 20px 40px rgba(127,232,255,.2);
+    transition:.25s;
+}
+
+.btn:hover{
+    transform:translateY(-2px);
+}
+
+/* Footer */
+
+.footer{
+    margin-top:26px;
+    text-align:center;
+    color:#8985a4;
+    font-size:14px;
+}
+
+.footer a{
+    color:white;
+    text-decoration:none;
+    font-weight:700;
+}
+
+/* Mobile */
+
+@media(max-width:980px){
+
+    body{
+        overflow:auto;
+    }
+
+    .register-card{
+        grid-template-columns:1fr;
+    }
+
+    .left{
+        padding:50px 35px;
+    }
+
+    .left h1{
+        font-size:50px;
+    }
+
+    .right{
+        padding:35px;
+    }
+}
+
+@media(max-width:600px){
+
+    .wrapper{
+        padding:0;
+    }
+
+    .register-card{
+        border-radius:0;
+    }
+
+    .left h1{
+        font-size:40px;
+    }
+
+    .right h2{
+        font-size:32px;
+    }
+
+    .right{
+        padding:28px;
+    }
+}
+
 </style>
 </head>
+
 <body>
-  <div class="auth-card">
-    <h2>Create Your Twin 🧬</h2>
-    <p>Start training your digital copy.</p>
-    <form method="post">
-      {% csrf_token %}
-      {% for field in form %}
-        <div class="field">
-          {{ field.label_tag }}
-          {{ field }}
-          {% if field.help_text %}
-            <span class="helptext">{{ field.help_text }}</span>
-          {% endif %}
-          {{ field.errors }}
+
+<div class="bg"></div>
+
+<div class="wrapper">
+
+    <div class="register-card">
+
+        <!-- LEFT -->
+
+        <div class="left">
+
+            <div class="logo">
+                <div class="logo-box">DT</div>
+                <span>Digital Twin</span>
+            </div>
+
+            <div class="tag">
+                NEXT GENERATION AI PLATFORM
+            </div>
+
+            <h1>
+                Create your
+                <span>future.</span>
+            </h1>
+
+            <p>
+                Build your intelligent AI identity and unlock a workspace
+                designed for memory, productivity, conversations and
+                personalized digital intelligence.
+            </p>
+
+            <div class="circle"></div>
+
         </div>
-      {% endfor %}
-      <button type="submit" class="btn">Create Account</button>
-    </form>
-    <a href="{% url 'login' %}" class="link">Already have an account? Login here</a>
-  </div>
+
+        <!-- RIGHT -->
+
+        <div class="right">
+
+            <small>GET STARTED</small>
+
+            <h2>Create account</h2>
+
+            <p class="subtitle">
+                Start your Digital Twin journey in just a few seconds.
+            </p>
+
+            <form method="post">
+
+                {% csrf_token %}
+
+                {% for field in form %}
+
+                <div class="field">
+
+                    {{ field.label_tag }}
+
+                    {{ field }}
+
+                    {% if field.help_text %}
+                    <span class="helptext">
+                        {{ field.help_text }}
+                    </span>
+                    {% endif %}
+
+                    {{ field.errors }}
+
+                </div>
+
+                {% endfor %}
+
+                <button type="submit" class="btn">
+                    Create Account
+                </button>
+
+            </form>
+
+            <div class="footer">
+                Already have an account?
+                <a href="{% url 'login' %}">
+                    Login
+                </a>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
 </body>
 </html>
