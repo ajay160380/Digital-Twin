@@ -21,8 +21,8 @@
 </head>
 <body>
   <div class="auth-card">
-    <h2>Naya Twin Banao 🧬</h2>
-    <p>Apni digital copy train karna shuru karo.</p>
+    <h2>Create Your Twin 🧬</h2>
+    <p>Start training your digital copy.</p>
     <form method="post">
       {% csrf_token %}
       {% for field in form %}
@@ -37,7 +37,7 @@
       {% endfor %}
       <button type="submit" class="btn">Create Account</button>
     </form>
-    <a href="{% url 'login' %}" class="link">Pehle se account hai? Login here</a>
+    <a href="{% url 'login' %}" class="link">Already have an account? Login here</a>
   </div>
 </body>
 </html>
