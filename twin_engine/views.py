@@ -73,6 +73,15 @@ def _unauthenticated_redirect(view_func):
         return view_func(request, *args, **kwargs)
     return wrapper
 
+# ✅ NAYA HELPER: Accuracy Calculate Karne Ke Liye
+def _calculate_accuracy(user) -> int:
+    rated_choices = PastChoice.objects.filter(user=user).exclude(is_accurate=None)
+    total_rated = rated_choices.count()
+    if total_rated == 0:
+        return 0
+    accurate_count = rated_choices.filter(is_accurate=True).count()
+    return int((accurate_count / total_rated) * 100)
+
 
 # ──────────────────────────────────────────────────────────────
 # 1. AUTHENTICATION VIEWS
@@ -105,7 +114,6 @@ def login_view(request: HttpRequest):
         logger.info("User logged in: %s", user.username)
         return redirect("twin_dashboard")
 
-    # 👇 Ise bhi registration/login.html kar diya hai error se bachne ke liye
     return render(request, "registration/login.html", {"form": form})
 
 
@@ -126,10 +134,7 @@ def logout_view(request: HttpRequest):
 @require_http_methods(["GET", "POST"])
 def twin_dashboard(request: HttpRequest):
     """
-    Main dashboard. Handles three POST actions:
-      • get_prediction  — AJAX: AI twin prediction for a scenario
-      • get_debate      — AJAX: AI vs AI debate on a topic
-      • update_twin_settings — Form: save personality / preference settings
+    Main dashboard. Handles POST actions.
     """
     user = request.user
 
@@ -146,6 +151,10 @@ def twin_dashboard(request: HttpRequest):
 
         if action == "update_twin_settings":
             return _handle_update_settings(request, user)
+            
+        # ✅ NAYA ACTION: Rating save karne ke liye
+        if action == "rate_prediction":
+            return _handle_rate_prediction(request, user)
 
         # Unknown POST action
         return _json_error(f"Unknown action. POST keys received: {', '.join(request.POST.keys()) or 'none'}", status=400)
@@ -154,8 +163,14 @@ def twin_dashboard(request: HttpRequest):
     twin_settings, _ = TwinSettings.objects.get_or_create(user=user)
     user_pref, _     = UserPreference.objects.get_or_create(user=user)
 
-    current_mood = twin_settings.last_mood or DEFAULT_MOOD
+    # User History Filter
+    user_history = PastChoice.objects.filter(user=user).order_by('-timestamp')[:50]
+    total_predictions = user_history.count()
     
+    # ✅ NAYA: Backend calculate accuracy percentage
+    accuracy_percentage = _calculate_accuracy(user)
+
+    current_mood = twin_settings.last_mood or DEFAULT_MOOD
     mood_roast = get_funny_roast(current_mood)
 
     context = {
@@ -165,6 +180,9 @@ def twin_dashboard(request: HttpRequest):
         "spotify_link":   _get_spotify_link(current_mood),
         "mood_options":   list(SPOTIFY_MOOD_PLAYLISTS.keys()),
         "mood_roast":     mood_roast,
+        "user_history":   user_history,
+        "total_predictions": total_predictions,
+        "accuracy_percentage": accuracy_percentage  # ✅ Passed to HTML
     }
     return render(request, "twin_dashboard.html", context)
 
@@ -175,12 +193,13 @@ def twin_dashboard(request: HttpRequest):
 
 def _detect_action(request: HttpRequest) -> str | None:
     """Return the first recognized action key from POST data, even if button value is empty."""
-    for action in ("get_prediction", "get_debate", "update_twin_settings"):
+    # ✅ ADDED rate_prediction here
+    for action in ("get_prediction", "get_debate", "update_twin_settings", "rate_prediction"):
         if action in request.POST:
             return action
 
     posted_action = request.POST.get("action", "").strip()
-    if posted_action in {"get_prediction", "get_debate", "update_twin_settings"}:
+    if posted_action in {"get_prediction", "get_debate", "update_twin_settings", "rate_prediction"}:
         return posted_action
 
     return None
@@ -202,12 +221,13 @@ def _handle_prediction(request: HttpRequest, user) -> JsonResponse:
         return _json_error(f"Prediction error: {exc}", status=500)
 
     try:
-        PastChoice.objects.create(user=user, scenario=scenario, choice_made=prediction)
+        # ✅ NAYA: Choice ko variable me store kiya taaki iska ID frontend ko bhej sake
+        choice = PastChoice.objects.create(user=user, scenario=scenario, choice_made=prediction)
         logger.debug("Prediction saved for user %s", user.username)
+        return _json_ok({"prediction": prediction, "prediction_id": choice.id})
     except Exception:
         logger.exception("Prediction was generated but could not be saved for user %s", user.username)
-
-    return _json_ok({"prediction": prediction})
+        return _json_error("Prediction generated but failed to save.", status=500)
 
 
 def _handle_prediction_stream(request: HttpRequest, user) -> StreamingHttpResponse | JsonResponse:
@@ -239,6 +259,27 @@ def _handle_prediction_stream(request: HttpRequest, user) -> StreamingHttpRespon
                 logger.exception("Streaming prediction was generated but could not be saved for user %s", user.username)
 
     return StreamingHttpResponse(event_stream(), content_type="text/plain; charset=utf-8")
+
+
+# ✅ NAYA FUNCTION: Rate Prediction Handler
+def _handle_rate_prediction(request: HttpRequest, user) -> JsonResponse:
+    """AJAX handler: Save the user's accuracy rating for a past choice."""
+    prediction_id = request.POST.get("prediction_id")
+    is_accurate_str = request.POST.get("is_accurate")
+    
+    if not prediction_id:
+        return _json_error("Missing prediction ID.")
+        
+    try:
+        choice = PastChoice.objects.get(id=prediction_id, user=user)
+        choice.is_accurate = (is_accurate_str == "true")
+        choice.save()
+        
+        # Rating save hone ke baad naya average accuracy nikalo
+        new_accuracy = _calculate_accuracy(user)
+        return _json_ok({"new_accuracy": new_accuracy})
+    except PastChoice.DoesNotExist:
+        return _json_error("Prediction not found.")
 
 
 def _handle_debate(request: HttpRequest, user) -> JsonResponse:
