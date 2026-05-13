@@ -90,7 +90,7 @@ body::before { content: ''; position: fixed; inset: 0; background-image: linear-
 .hero p { font-size: 15px; color: var(--text-muted); font-weight: 400; max-width: 400px; margin: 0 auto; line-height: 1.7; }
 
 /* ── Stats ── */
-.stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 24px; }
+.stats-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 24px; } /* Removed 3rd column for Streak */
 .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px 14px; text-align: center; transition: border-color var(--transition); }
 .stat-card:hover { border-color: var(--border-hover); }
 .stat-num { font-size: 26px; font-weight: 700; color: var(--accent); letter-spacing: -1px; line-height: 1; margin-bottom: 4px; }
@@ -159,6 +159,12 @@ body::before { content: ''; position: fixed; inset: 0; background-image: linear-
 .mood-row { display: flex; flex-wrap: wrap; gap: 6px; }
 .mood-pill { padding: 7px 14px; border-radius: var(--radius-full); background: var(--surface2); border: 1px solid var(--border); font-size: 12px; cursor: pointer; transition: all 0.15s; user-select: none; font-family: var(--font); color: var(--text-mid); }
 .mood-pill:hover, .mood-pill.active { background: var(--accent-dim); border-color: var(--border-hover); color: var(--accent); }
+
+/* Rating Styles for Accuracy buttons */
+.mood-pill.active-agree { background: rgba(53,241,200,0.15); border-color: #35f1c8; color: #35f1c8; cursor: default; font-weight: 600;}
+.mood-pill.active-disagree { background: rgba(255, 71, 87, 0.15); border-color: #ff4757; color: #ff4757; cursor: default; font-weight: 600;}
+.mood-pill.disabled { opacity: 0.4; pointer-events: none; }
+
 .textarea-wrap { position: relative; }
 .char-count { position: absolute; bottom: 10px; right: 12px; font-size: 11px; color: var(--text-muted); pointer-events: none; background: var(--surface2); padding: 2px 6px; border-radius: 4px; }
 
@@ -180,7 +186,7 @@ body::before { content: ''; position: fixed; inset: 0; background-image: linear-
 .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
 .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
 @keyframes typingBounce { 0%, 100% { opacity: 0.4; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-4px); } }
-.reaction-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 12px; }
+.reaction-row { display: flex; gap: 8px; justify-content: flex-start; flex-wrap: wrap; margin-top: 12px; }
 .copy-btn { background: var(--surface3); border: 1px solid var(--border); border-radius: 8px; padding: 5px 12px; font-size: 11px; color: var(--text-muted); cursor: pointer; transition: all var(--transition); font-family: var(--font); display: flex; align-items: center; gap: 5px; }
 .copy-btn:hover { color: var(--text); border-color: var(--border-hover); }
 
@@ -255,18 +261,16 @@ body::before { content: ''; position: fixed; inset: 0; background-image: linear-
     <p>Predicts what you would do — based on your moods, habits, and vibes.</p>
   </div>
 
+  <!-- ✅ FIX: Streak removed, only 2 columns for Stats -->
   <div class="stats-row fade-up">
     <div class="stat-card">
-      <div class="stat-num" id="stat-predictions">0</div>
-      <div class="stat-label">Predictions</div>
+      <div class="stat-num" id="stat-predictions">{{ total_predictions|default:"0" }}</div>
+      <div class="stat-label">Total Predictions</div>
     </div>
     <div class="stat-card">
-      <div class="stat-num" id="stat-accuracy">94%</div>
-      <div class="stat-label">Accuracy</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-num" id="stat-streak">0</div>
-      <div class="stat-label">Streak</div>
+      <!-- ✅ FIX: Live Dynamic Accuracy Score connected to Backend -->
+      <div class="stat-num" id="stat-accuracy">{{ accuracy_percentage|default:"0" }}%</div>
+      <div class="stat-label">AI Accuracy</div>
     </div>
   </div>
 
@@ -294,83 +298,43 @@ body::before { content: ''; position: fixed; inset: 0; background-image: linear-
       </div>
     </div>
 
-    <form id="prefForm" onsubmit="handlePrefSubmit(event)">
+    <!-- Django Form Submission Setup -->
+    <form method="POST">
+      {% csrf_token %}
+      <input type="hidden" name="update_twin_settings" value="1">
       <div class="form-grid">
-
-        <div class="field">
-          <label class="field-label">Your Name</label>
-          <input type="text" name="name" class="field-input" placeholder="e.g. Ajay...">
-        </div>
 
         <div class="field">
           <label class="field-label">Sleep Schedule</label>
           <select name="sleep_cycle" class="field-select">
-            <option value="early_bird">🌅 Early Bird (6am)</option>
-            <option value="normal">☀️ Normal (up by 10am)</option>
-            <option value="night_owl" selected>🦉 Night Owl (up till 3am)</option>
-            <option value="chaotic">💀 Completely unpredictable</option>
+            <option value="early_bird" {% if user_pref.sleep_cycle == "early_bird" %}selected{% endif %}>🌅 Early Bird (6am)</option>
+            <option value="normal" {% if user_pref.sleep_cycle == "normal" %}selected{% endif %}>☀️ Normal (up by 10am)</option>
+            <option value="night_owl" {% if user_pref.sleep_cycle == "night_owl" or not user_pref.sleep_cycle %}selected{% endif %}>🦉 Night Owl (up till 3am)</option>
           </select>
         </div>
 
         <div class="field">
           <label class="field-label">Diet Preference</label>
           <select name="diet_preference" class="field-select">
-            <option value="veg">🌿 Pure Vegetarian</option>
-            <option value="nonveg" selected>🍗 Non-Vegetarian</option>
-            <option value="junk_lover">🍕 Junk Food Addict</option>
-            <option value="bhai_kuch_bhi">😐 Whatever's available</option>
+            <option value="veg" {% if user_pref.diet_preference == "veg" %}selected{% endif %}>🌿 Pure Vegetarian</option>
+            <option value="nonveg" {% if user_pref.diet_preference == "nonveg" or not user_pref.diet_preference %}selected{% endif %}>🍗 Non-Vegetarian</option>
           </select>
         </div>
 
-        <div class="field">
+        <div class="field full">
           <label class="field-label">Favorite Color</label>
-          <input type="text" name="favorite_color" class="field-input" placeholder="e.g., Blue, Green..." value="{{ favorite_color }}">
+          <input type="text" name="favorite_color" class="field-input" placeholder="e.g., Blue, Green..." value="{{ user_pref.favorite_color|default:'' }}">
         </div>
 
         <div class="field full">
           <label class="field-label">Personality & Hobbies</label>
-          <textarea name="personality_traits" class="field-textarea" placeholder="e.g. I'm an introvert, interested in IoT and Python coding, big cricket fan, tend to procrastinate…"></textarea>
+          <textarea name="personality_traits" class="field-textarea" placeholder="e.g. I'm an introvert, interested in IoT and Python coding…">{{ user_pref.personality_traits|default:'' }}</textarea>
         </div>
 
-        <div class="field full">
-          <label class="field-label">Current Life Stage</label>
-          <select name="life_phase" class="field-select">
-            <option value="student" selected>📚 B.Tech Student</option>
-            <option value="job_seeker">🎯 Job Hunting</option>
-            <option value="working">💼 Working Professional</option>
-            <option value="freelancer">💻 Freelancer / Startup</option>
-            <option value="gap_year">🌴 Chill Mode On</option>
-          </select>
-        </div>
-
-      </div>
-
-      <div class="divider">Settings</div>
-
-      <div class="toggle-row">
-        <div class="toggle-info">
-          <h4>Brutal Honest Mode</h4>
-          <p>AI won't sugarcoat — it'll tell you straight up</p>
-        </div>
-        <label class="toggle">
-          <input type="checkbox" name="brutal_mode" id="brutalMode">
-          <span class="toggle-slider"></span>
-        </label>
-      </div>
-
-      <div class="toggle-row">
-        <div class="toggle-info">
-          <h4>Learn from Past Choices</h4>
-          <p>AI finds patterns from your previous decisions</p>
-        </div>
-        <label class="toggle">
-          <input type="checkbox" name="learn_from_history" checked>
-          <span class="toggle-slider"></span>
-        </label>
       </div>
 
       <div style="margin-top: 20px;">
-        <button type="submit" class="btn-secondary">
+        <button type="submit" class="btn-secondary" onclick="showToast('Saving to Database...')">
           <span>💾</span> Save Preferences
         </button>
       </div>
@@ -386,7 +350,7 @@ body::before { content: ''; position: fixed; inset: 0; background-image: linear-
       </div>
     </div>
 
-    <form id="twinSettingsForm" method="POST">
+    <form method="POST">
       {% csrf_token %}
       <input type="hidden" name="update_twin_settings" value="1">
       
@@ -394,7 +358,7 @@ body::before { content: ''; position: fixed; inset: 0; background-image: linear-
 
         <div class="field full">
           <label class="field-label">💬 Twin's Nickname</label>
-          <input type="text" name="bot_nickname" class="field-input" maxlength="50" placeholder='Give your AI a nickname (e.g., "Ajay AI")' value="{{ twin_settings.bot_nickname }}">
+          <input type="text" name="bot_nickname" class="field-input" maxlength="50" placeholder='Give your AI a nickname (e.g., "Ajay AI")' value="{{ twin_settings.bot_nickname|default:'' }}">
         </div>
 
         <div class="field full">
@@ -405,7 +369,7 @@ body::before { content: ''; position: fixed; inset: 0; background-image: linear-
               <span style="font-size: 12px; color: var(--text);">🎩 Professional</span>
             </label>
             <label style="display: flex; align-items: center; padding: 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer;">
-              <input type="radio" name="tone_level" value="2" {% if twin_settings.tone_level == 2 %}checked{% endif %} style="margin-right: 8px;">
+              <input type="radio" name="tone_level" value="2" {% if twin_settings.tone_level == 2 or not twin_settings.tone_level %}checked{% endif %} style="margin-right: 8px;">
               <span style="font-size: 12px; color: var(--text);">😊 Casual</span>
             </label>
             <label style="display: flex; align-items: center; padding: 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer;">
@@ -438,13 +402,13 @@ body::before { content: ''; position: fixed; inset: 0; background-image: linear-
 
         <div class="field full">
           <label class="field-label">📝 Custom Rules (Optional)</label>
-          <textarea name="custom_instructions" class="field-textarea" placeholder='Examples: "Always present yourself as a B.Tech student"'>{{ twin_settings.custom_instructions }}</textarea>
+          <textarea name="custom_instructions" class="field-textarea" placeholder='Examples: "Always present yourself as a B.Tech student"'>{{ twin_settings.custom_instructions|default:'' }}</textarea>
         </div>
 
       </div>
 
       <div style="margin-top: 20px;">
-        <button type="submit" class="btn-primary">
+        <button type="submit" class="btn-primary" onclick="showToast('Saving to Database...')">
           <span>🎭</span> Save Personality
         </button>
       </div>
@@ -472,19 +436,6 @@ body::before { content: ''; position: fixed; inset: 0; background-image: linear-
           <div class="chip" onclick="fillChip(this)">🍕 2am hunger strike, kitchen is empty</div>
           <div class="chip" onclick="fillChip(this)">📚 Exam tomorrow, studied nothing today</div>
         </div>
-      </div>
-
-      <div>
-        <div class="chips-label" style="margin-bottom: 8px;">What's your mood right now?</div>
-        <div class="mood-row">
-          <div class="mood-pill" onclick="selectMood(this)" data-mood="tired">😫 Tired</div>
-          <div class="mood-pill" onclick="selectMood(this)" data-mood="chill">😎 Chill</div>
-          <div class="mood-pill" onclick="selectMood(this)" data-mood="stressed">😤 Stressed</div>
-          <div class="mood-pill" onclick="selectMood(this)" data-mood="motivated">🔥 Motivated</div>
-          <div class="mood-pill" onclick="selectMood(this)" data-mood="bored">🥱 Bored</div>
-          <div class="mood-pill" onclick="selectMood(this)" data-mood="hungry">🍔 Hungry</div>
-        </div>
-        <input type="hidden" id="moodInput" value="">
       </div>
 
       <div>
@@ -561,7 +512,8 @@ body::before { content: ''; position: fixed; inset: 0; background-image: linear-
     </div>
   </div>
 
-  <div class="card fade-up" id="historyCard" style="display: none;">
+  <!-- ✅ FIX: History Ab Django backend se load hogi (Data leak fix) -->
+  <div class="card fade-up" id="historyCard" {% if not user_history %}style="display: none;"{% endif %}>
     <div class="section-head">
       <div class="section-icon orange">🕐</div>
       <div>
@@ -569,7 +521,18 @@ body::before { content: ''; position: fixed; inset: 0; background-image: linear-
         <div class="section-sub">This is what the AI uses to understand you</div>
       </div>
     </div>
-    <div class="history-list" id="historyList"></div>
+    <div class="history-list" id="historyList">
+      {% for chat in user_history %}
+      <div class="history-item">
+        <div class="h-dot"></div>
+        <div>
+          <div class="h-scenario">{{ chat.scenario|truncatechars:70 }}</div>
+          <div class="h-choice">→ {{ chat.choice_made|truncatechars:80 }}</div>
+          <div class="h-time">{{ chat.timestamp|timesince }} ago</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
   </div>
 
 </div>
@@ -602,18 +565,18 @@ body::before { content: ''; position: fixed; inset: 0; background-image: linear-
       </div>
       <div class="p-card">
         <span class="p-label">Predictions Used</span>
-        <span class="p-val" id="prof-preds-count">0</span>
+        <span class="p-val" id="prof-preds-count">{{ total_predictions|default:"0" }}</span>
       </div>
     </div>
 
     <div style="margin-bottom: 20px;">
       <span class="p-label" style="margin-bottom: 6px;">Core Personality Traits</span>
       <div style="background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; font-size: 13px; color: var(--text-mid); line-height: 1.5;" id="prof-traits-text">
-        Loading traits...
+        {{ user_pref.personality_traits|default:"No traits set yet!" }}
       </div>
     </div>
     
-    <a href="/logout/" style="text-decoration: none;">
+    <a href="{% url 'logout' %}" style="text-decoration: none;">
       <button class="btn-danger">
         <span>🚪</span> Logout from Twin
       </button>
@@ -623,23 +586,14 @@ body::before { content: ''; position: fixed; inset: 0; background-image: linear-
 
 <script>
 // ── State ──
-let currentMood = '';
-let savedPrefs = {};
-let predictions = parseInt(localStorage.getItem('dt_predictions') || '0');
-let streak = parseInt(localStorage.getItem('dt_streak') || '0');
-let history = JSON.parse(localStorage.getItem('dt_history') || '[]');
+// ✅ FIX: Removed localStorage to stop old accounts data from leaking!
+let predictionsCount = parseInt("{{ total_predictions|default:'0' }}", 10);
 
 // ── Init ──
 document.addEventListener('DOMContentLoaded', () => {
-  animateStats();
-  loadPrefs();
-  renderHistory();
   setupEnterKey();
   const saved = localStorage.getItem('dt_theme');
   if (saved === 'light') setTheme('light');
-  
-  // Update Profile Modal values
-  document.getElementById('prof-preds-count').textContent = predictions;
 });
 
 // ── Theme ──
@@ -654,63 +608,8 @@ function setTheme(t) {
 }
 
 // ── Profile Modal Functions ──
-function openProfileModal() {
-  const modal = document.getElementById('profileModal');
-  const prefs = JSON.parse(localStorage.getItem('dt_prefs') || '{}');
-  const traitsBox = document.getElementById('prof-traits-text');
-  
-  if (prefs.personality_traits) {
-      traitsBox.textContent = prefs.personality_traits;
-  } else {
-      traitsBox.textContent = "No personality traits set yet. Fill the configuration form!";
-  }
-  
-  document.getElementById('prof-preds-count').textContent = predictions;
-  modal.classList.add('active');
-}
-
-function closeProfileModal() {
-  document.getElementById('profileModal').classList.remove('active');
-}
-
-// ── Stats animation ──
-function animateStats() {
-  animNum('stat-predictions', predictions);
-  animNum('stat-streak', streak);
-}
-function animNum(id, target) {
-  if (!target) return;
-  const el = document.getElementById(id);
-  let c = 0;
-  const step = Math.max(1, Math.ceil(target / 35));
-  const t = setInterval(() => {
-    c = Math.min(c + step, target);
-    el.textContent = c;
-    if (c >= target) clearInterval(t);
-  }, 30);
-}
-
-// ── Preferences ──
-function loadPrefs() {
-  const p = JSON.parse(localStorage.getItem('dt_prefs') || '{}');
-  savedPrefs = p;
-  if (p.name) document.querySelector('[name="name"]').value = p.name;
-  if (p.sleep_cycle) document.querySelector('[name="sleep_cycle"]').value = p.sleep_cycle;
-  if (p.diet_preference) document.querySelector('[name="diet_preference"]').value = p.diet_preference;
-  if (p.personality_traits) document.querySelector('[name="personality_traits"]').value = p.personality_traits;
-  if (p.life_phase) document.querySelector('[name="life_phase"]').value = p.life_phase;
-  if (p.brutal_mode) document.querySelector('[name="brutal_mode"]').checked = true;
-}
-function handlePrefSubmit(e) {
-  e.preventDefault();
-  const fd = new FormData(e.target);
-  const p = {};
-  for (let [k, v] of fd.entries()) p[k] = v;
-  p.brutal_mode = document.getElementById('brutalMode').checked;
-  localStorage.setItem('dt_prefs', JSON.stringify(p));
-  savedPrefs = p;
-  showToast('Preferences saved!');
-}
+function openProfileModal() { document.getElementById('profileModal').classList.add('active'); }
+function closeProfileModal() { document.getElementById('profileModal').classList.remove('active'); }
 
 // ── UI Helpers ──
 function setupEnterKey() {
@@ -733,20 +632,12 @@ function updateChar(el) { document.getElementById('charCount').textContent = el.
 function clearAll() {
   document.getElementById('scenarioInput').value = '';
   document.getElementById('charCount').textContent = '0 / 300';
-  document.querySelectorAll('.chip, .mood-pill').forEach(c => c.classList.remove('active'));
-  document.getElementById('moodInput').value = '';
-  currentMood = '';
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
   document.getElementById('outputArea').innerHTML = '';
   document.getElementById('roastMeterContainer').style.display = 'none';
 }
-function selectMood(el) {
-  document.querySelectorAll('.mood-pill').forEach(p => p.classList.remove('active'));
-  el.classList.add('active');
-  currentMood = el.dataset.mood;
-  document.getElementById('moodInput').value = currentMood;
-}
 
-// ── Main Prediction & DYNAMIC Roast-o-Meter ──
+// ── Main Prediction ──
 async function getPrediction() {
   const scenario = document.getElementById('scenarioInput').value.trim();
   if (!scenario) { showToast('Write a scenario first! ✍️'); return; }
@@ -767,13 +658,14 @@ async function getPrediction() {
       body: formData
     });
 
-    if (!res.ok) throw new Error('Django Backend Error: ' + res.status);
+    if (!res.ok) throw new Error('Django Backend Error');
     const result = await res.json();
     
     if (result.ok) {
-        showOutput(result.data.prediction, scenario);
+        // ✅ NEW: Passes the prediction ID to render the rating buttons
+        showOutput(result.data.prediction, result.data.prediction_id);
         triggerRoastMeter(result.data.prediction); 
-        savePrediction(scenario, result.data.prediction);
+        savePredictionToDOM(scenario, result.data.prediction); 
     } else {
         throw new Error(result.error);
     }
@@ -802,7 +694,8 @@ function showError(msg) {
     </div>`;
 }
 
-function showOutput(text, scenario) {
+// ✅ FIX: Integrated Accuracy Rating Buttons here
+function showOutput(text, predictionId) {
   const hour = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
   document.getElementById('outputArea').innerHTML = `
     <div class="output-card" id="outCard" style="animation: fadeUp 0.4s ease;">
@@ -813,93 +706,86 @@ function showOutput(text, scenario) {
       <p class="output-text" id="outText">${escapeHtml(text)}</p>
       <div class="output-footer">
         <span class="meta-item">🕐 ${hour}</span>
-        <span class="meta-item" style="margin-left: auto; cursor: pointer; color: var(--accent2);" onclick="showToast('Saved! 🔖')">🔖 Save</span>
       </div>
-    </div>
-    <div class="reaction-row">
-      <div class="mood-pill" onclick="reactTo('accurate', this)">✅ Spot on</div>
-      <div class="mood-pill" onclick="reactTo('close', this)">🤏 Somewhat right</div>
-      <div class="mood-pill" onclick="reactTo('wrong', this)">❌ Nope, not right</div>
+      
+      <!-- ✅ NAYA: REVIEW SYSTEM FOR ACCURACY -->
+      <div class="reaction-row" id="rating-box-${predictionId}">
+        <span style="font-size:12px; color:var(--text-muted); align-self:center; margin-right:8px;">Is this accurate?</span>
+        <div class="mood-pill" onclick="submitRating(${predictionId}, true, this)">✅ Yes, Agree</div>
+        <div class="mood-pill" onclick="submitRating(${predictionId}, false, this)">❌ Not really</div>
+      </div>
     </div>`;
   document.getElementById('outCard').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
-// 🟢 SMARTER & MORE DYNAMIC ROAST-O-METER LOGIC
+// ✅ NAYA: Function to submit the rating to Django and update score dynamically
+async function submitRating(predictionId, isAccurate, btnElement) {
+    const box = document.getElementById(`rating-box-${predictionId}`);
+    box.querySelectorAll('.mood-pill').forEach(btn => btn.classList.add('disabled'));
+    
+    btnElement.classList.remove('disabled');
+    btnElement.classList.add(isAccurate ? 'active-agree' : 'active-disagree');
+    btnElement.innerHTML = isAccurate ? '✅ Rating Saved!' : '❌ Rating Saved!';
+
+    try {
+        const formData = new FormData();
+        formData.append('action', 'rate_prediction');
+        formData.append('prediction_id', predictionId);
+        formData.append('is_accurate', isAccurate);
+
+        const res = await fetch(window.location.href, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}', 'X-Requested-With': 'XMLHttpRequest' },
+            body: formData
+        });
+
+        const result = await res.json();
+        if (result.ok) {
+            // Live Update Accuracy Percentage on the screen
+            document.getElementById('stat-accuracy').textContent = result.data.new_accuracy + '%';
+            showToast('Twin learned from your feedback! 🧠');
+        }
+    } catch (err) {
+        console.error("Failed to submit rating");
+    }
+}
+
 function triggerRoastMeter(text) {
   const container = document.getElementById('roastMeterContainer');
   const bar = document.getElementById('roastBar');
   const status = document.getElementById('roastStatus');
-  
   container.style.display = 'block';
-  
   let score = 15 + Math.floor(Math.random() * 20); 
-  
-  const savageWords = [
-      'sleep', 'bro', 'dude', 'idiot', 'procrastinator', 'shame', 
-      'study', 'reels', 'kid', 'what are you doing', 'shut up', 'nonsense', 
-      'roast', 'loser', 'fail', 'fat', 'thin', 'think', 'useless', 
-      'lazy', 'timepass', 'worthless', 'lecture', 'mouth'
-  ];
-  
-  savageWords.forEach(w => { 
-      if(text.toLowerCase().includes(w)) score += 18; 
-  });
-  
+  const savageWords = ['sleep', 'bro', 'dude', 'idiot', 'procrastinator', 'shame', 'study', 'reels', 'kid', 'shut up', 'loser', 'useless', 'lazy', 'timepass'];
+  savageWords.forEach(w => { if(text.toLowerCase().includes(w)) score += 18; });
   if (text.includes('!')) score += 15;
-  if (text.includes('?')) score += 10;
   if (text.length > 150) score += 20;
-  
   score = Math.min(score, 100);
-  
-  bar.style.width = '0%'; 
-  bar.style.transition = 'none';
-  
+  bar.style.width = '0%'; bar.style.transition = 'none';
   setTimeout(() => {
     bar.style.transition = 'width 1s cubic-bezier(0.175, 0.885, 0.32, 1.275)'; 
     bar.style.width = score + '%';
-    
-    if(score < 45) {
-        status.innerText = "CHILL 😊";
-        status.style.color = "#35f1c8";
-    } else if(score < 75) {
-        status.innerText = "SAVAGE 💀";
-        status.style.color = "#f1c40f";
-    } else {
-        status.innerText = "BRUTAL DESTRUCTION 🌋";
-        status.style.color = "#e74c3c";
-    }
+    if(score < 45) { status.innerText = "CHILL 😊"; status.style.color = "#35f1c8"; } 
+    else if(score < 75) { status.innerText = "SAVAGE 💀"; status.style.color = "#f1c40f"; } 
+    else { status.innerText = "BRUTAL DESTRUCTION 🌋"; status.style.color = "#e74c3c"; }
   }, 50);
 }
 
-// ── 🔥 Debate System 🔥 ──
 async function startDebate() {
   const topic = document.getElementById('debateTopic').value.trim();
   const opponent = document.getElementById('opponentSelect').value;
-  
   if (!topic) { showToast('Write a debate topic first! 🥊'); return; }
-
   const btn = document.getElementById('startDebateBtn');
   const area = document.getElementById('debateArea');
-  
-  btn.disabled = true;
-  btn.innerHTML = '<span>⏳</span> Scripting Fight...';
+  btn.disabled = true; btn.innerHTML = '<span>⏳</span> Scripting Fight...';
   area.innerHTML = '<div class="typing-indicator" style="margin: auto;"><span></span><span></span><span></span></div>';
 
   try {
     const formData = new FormData();
-    formData.append('get_debate', 'true');
-    formData.append('topic', topic);
-    formData.append('opponent', opponent);
-
-    const res = await fetch(window.location.href, {
-      method: 'POST',
-      headers: { 'X-CSRFToken': '{{ csrf_token }}', 'X-Requested-With': 'XMLHttpRequest' },
-      body: formData
-    });
-
+    formData.append('get_debate', 'true'); formData.append('topic', topic); formData.append('opponent', opponent);
+    const res = await fetch(window.location.href, { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}', 'X-Requested-With': 'XMLHttpRequest' }, body: formData });
     const result = await res.json();
     area.innerHTML = ''; 
-
     if (result.ok) {
         result.data.script.forEach((line, index) => {
           setTimeout(() => {
@@ -908,76 +794,45 @@ async function startDebate() {
             const bgColor = isTwin ? 'var(--accent-dim)' : 'var(--surface)';
             const borderColor = isTwin ? 'var(--accent)' : '#ff4757';
             const nameColor = isTwin ? 'var(--accent)' : '#ff4757';
-            
             const bubble = document.createElement('div');
-            bubble.style.cssText = `
-              align-self: ${align}; 
-              background: ${bgColor}; 
-              border: 1px solid ${borderColor}; 
-              padding: 12px 16px; 
-              border-radius: 12px; 
-              max-width: 85%;
-              animation: fadeUp 0.4s ease;
-            `;
-            bubble.innerHTML = `
-              <div style="font-size: 11px; font-weight: bold; color: ${nameColor}; margin-bottom: 4px; text-transform: uppercase;">
-                ${isTwin ? '🤖 My Twin' : '🥊 ' + opponent}
-              </div>
-              <div style="font-size: 14px; line-height: 1.5; color: var(--text);">${line.text}</div>
-            `;
-            area.appendChild(bubble);
-            area.scrollTop = area.scrollHeight; 
+            bubble.style.cssText = `align-self: ${align}; background: ${bgColor}; border: 1px solid ${borderColor}; padding: 12px 16px; border-radius: 12px; max-width: 85%; animation: fadeUp 0.4s ease;`;
+            bubble.innerHTML = `<div style="font-size: 11px; font-weight: bold; color: ${nameColor}; margin-bottom: 4px; text-transform: uppercase;">${isTwin ? '🤖 My Twin' : '🥊 ' + opponent}</div><div style="font-size: 14px; line-height: 1.5; color: var(--text);">${line.text}</div>`;
+            area.appendChild(bubble); area.scrollTop = area.scrollHeight; 
           }, index * 1800); 
         });
-    } else {
-        throw new Error(result.error);
-    }
-
-  } catch (err) {
-    area.innerHTML = `<p style="color: #ff4757; text-align:center;">Error: ${err.message}</p>`;
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = '<span>🔥</span> Start the Fight';
-  }
+    } else { throw new Error(result.error); }
+  } catch (err) { area.innerHTML = `<p style="color: #ff4757; text-align:center;">Error: ${err.message}</p>`; } 
+  finally { btn.disabled = false; btn.innerHTML = '<span>🔥</span> Start the Fight'; }
 }
 
-// ── Misc Helpers ──
+// ✅ FIX: Replaces localstorage, appends newly created prediction straight to DOM
+function savePredictionToDOM(scenario, prediction) {
+  predictionsCount++;
+  document.getElementById('stat-predictions').textContent = predictionsCount;
+  document.getElementById('prof-preds-count').textContent = predictionsCount;
+
+  const list = document.getElementById('historyList');
+  document.getElementById('historyCard').style.display = ''; 
+  const cleanScenario = escapeHtml(scenario.length > 70 ? scenario.substring(0, 70) + '…' : scenario);
+  const cleanPred = escapeHtml(prediction.length > 80 ? prediction.substring(0, 80) + '…' : prediction);
+  
+  const newItem = `
+    <div class="history-item" style="animation: fadeUp 0.3s ease;">
+      <div class="h-dot"></div>
+      <div>
+        <div class="h-scenario">${cleanScenario}</div>
+        <div class="h-choice">→ ${cleanPred}</div>
+        <div class="h-time">Just now</div>
+      </div>
+    </div>`;
+  list.insertAdjacentHTML('afterbegin', newItem);
+}
+
 function copyText() {
   const t = document.getElementById('outText');
   if (t) navigator.clipboard.writeText(t.textContent).then(() => showToast('Copied! 📋'));
 }
-function reactTo(type, el) {
-  document.querySelectorAll('.reaction-row .mood-pill').forEach(p => p.classList.remove('active'));
-  el.classList.add('active');
-  const msgs = { accurate: '🎯 Nice!', close: '🤏 Close enough.', wrong: '📝 Noted.' };
-  setTimeout(() => showToast(msgs[type]), 100);
-}
-function savePrediction(scenario, prediction) {
-  predictions++;
-  localStorage.setItem('dt_predictions', predictions);
-  document.getElementById('stat-predictions').textContent = predictions;
-  const entry = { scenario, prediction, time: Date.now() };
-  history.unshift(entry);
-  if (history.length > 10) history.pop();
-  localStorage.setItem('dt_history', JSON.stringify(history));
-  renderHistory();
-}
-function renderHistory() {
-  if (!history.length) return;
-  const card = document.getElementById('historyCard');
-  const list = document.getElementById('historyList');
-  card.style.display = '';
-  list.innerHTML = history.slice(0, 5).map(h => `
-    <div class="history-item">
-      <div class="h-dot"></div>
-      <div>
-        <div class="h-scenario">${escapeHtml(h.scenario.substring(0, 70))}${h.scenario.length > 70 ? '…' : ''}</div>
-        <div class="h-choice">→ ${escapeHtml(h.prediction.substring(0, 80))}${h.prediction.length > 80 ? '…' : ''}</div>
-        <div class="h-time">${timeAgo(h.time)}</div>
-      </div>
-    </div>
-  `).join('');
-}
+
 function showToast(msg) {
   const t = document.createElement('div');
   t.style.cssText = `position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--border-hover); color: var(--text); padding: 10px 20px; border-radius: 999px; z-index: 9999; animation: fadeUp 0.3s ease; box-shadow: 0 8px 24px rgba(0,0,0,0.3);`;
@@ -985,14 +840,8 @@ function showToast(msg) {
   document.body.appendChild(t);
   setTimeout(() => t.remove(), 2400);
 }
+
 function escapeHtml(str) { return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function timeAgo(ts) {
-  const d = Date.now() - ts;
-  if (d < 60000) return 'just now';
-  if (d < 3600000) return Math.floor(d/60000) + ' min ago';
-  if (d < 86400000) return Math.floor(d/3600000) + ' hr ago';
-  return Math.floor(d/86400000) + ' days ago';
-}
 </script>
 </body>
 </html>
