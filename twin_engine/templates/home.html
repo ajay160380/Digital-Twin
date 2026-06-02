@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Twin Pro | Portal</title>
+    
+    <!-- Fonts -->
+    <link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@900&f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-dark: #050505;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body, html {
+            background-color: var(--bg-dark);
+            color: white;
+            font-family: 'Satoshi', sans-serif;
+            overflow: hidden; /* We handle scrolling via JS virtual scroll */
+            height: 100vh;
+            width: 100vw;
+            overscroll-behavior: none;
+        }
+
+        h1, h2, h3, .title-font {
+            font-family: 'Cabinet Grotesk', sans-serif;
+            font-weight: 900;
+            letter-spacing: -0.05em;
+        }
+
+        /* --- Vibrant Animated Background --- */
+        .vibrant-bg {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed, #f59e0b, #db2777);
+            background-size: 400% 400%;
+            animation: gradientAnim 15s ease infinite;
+            z-index: 0;
+        }
+
+        @keyframes gradientAnim {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* --- Layer 1: Internal Page (Hero Section) --- */
+        #layer-internal {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            pointer-events: none; /* Changed by JS later */
+            opacity: 0;
+            transform: scale(0.95);
+            filter: blur(40px);
+            transition: opacity 2s cubic-bezier(0.77, 0, 0.175, 1), 
+                        transform 2s cubic-bezier(0.77, 0, 0.175, 1),
+                        filter 2s cubic-bezier(0.77, 0, 0.175, 1);
+        }
+
+        #layer-internal.revealed {
+            opacity: 1;
+            transform: scale(1);
+            filter: blur(0px);
+            pointer-events: auto;
+        }
+
+        /* Header / Nav */
+        header {
+            padding: 24px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-circle {
+            width: 40px;
+            height: 40px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #4f46e5;
+        }
+
+        .logo-text {
+            font-family: 'Cabinet Grotesk', sans-serif;
+            font-weight: 900;
+            font-size: 1.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        nav {
+            display: flex;
+            gap: 32px;
+        }
+
+        nav a {
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            text-transform: uppercase;
+            font-weight: 700;
+            font-size: 0.9rem;
+            letter-spacing: 0.05em;
+            transition: color 0.3s;
+        }
+
+        nav a:hover {
+            color: white;
+        }
+
+        /* Hero Content */
+        .hero-container {
+            flex: 1;
+            padding: 0 40px;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 40px;
+            align-items: center;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        @media (min-width: 768px) {
+            .hero-container {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .hero-left h1 {
+            font-size: clamp(4rem, 6vw, 6rem);
+            line-height: 0.9;
+            margin-bottom: 24px;
+        }
+
+        .hero-left h1 span {
+            display: block;
+            opacity: 0.4;
+        }
+
+        .hero-left p {
+            font-size: 1.25rem;
+            max-width: 500px;
+            margin-bottom: 40px;
+            opacity: 0.9;
+            line-height: 1.6;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 16px;
+        }
+
+        .btn {
+            padding: 16px 32px;
+            border-radius: 9999px;
+            font-weight: 700;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .btn-solid {
+            background: white;
+            color: var(--bg-dark);
+        }
+
+        .btn-solid:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-outline:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        /* Hero Right - Glass Card */
+        .hero-right {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .ambient-circle-1 {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: rgba(250, 204, 21, 0.2); /* yellow-400 */
+            border-radius: 50%;
+            filter: blur(60px);
+            top: -10%;
+            left: 10%;
+        }
+
+        .ambient-circle-2 {
+            position: absolute;
+            width: 250px;
+            height: 250px;
+            background: rgba(236, 72, 153, 0.2); /* pink-500 */
+            border-radius: 50%;
+            filter: blur(60px);
+            bottom: -10%;
+            right: 10%;
+        }
+
+        .glass-card {
+            position: relative;
+            width: 100%;
+            max-width: 450px;
+            aspect-ratio: 1 / 1;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 32px;
+            padding: 32px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            z-index: 2;
+            /* Misty reveal handled by #layer-internal classes */
+        }
+
+        .glass-sub {
+            font-family: monospace;
+            font-size: 0.85rem;
+            opacity: 0.7;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .glass-title {
+            font-size: 2.5rem;
+            line-height: 1.1;
+            margin-top: auto;
+            margin-bottom: 16px;
+        }
+
+        .glass-icon-row {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .glass-icon {
+            width: 40px; height: 40px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        /* --- Layer 2: Portal Curtain (SVG Mask) --- */
+        #layer-curtain {
+            position: absolute;
+            inset: 0;
+            z-index: 20;
+            pointer-events: none;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #layer-curtain svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* --- Layer 3: Intro UI --- */
+        #layer-intro {
+            position: absolute;
+            inset: 0;
+            z-index: 30;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            padding-bottom: 60px;
+            pointer-events: none;
+            transition: opacity 0.5s, transform 0.5s;
+        }
+
+        .mouse-icon {
+            width: 24px;
+            height: 36px;
+            border: 2px solid white;
+            border-radius: 12px;
+            position: relative;
+            margin-bottom: 12px;
+        }
+
+        .mouse-wheel {
+            width: 4px;
+            height: 8px;
+            background: white;
+            border-radius: 2px;
+            position: absolute;
+            top: 6px;
+            left: 50%;
+            transform: translateX(-50%);
+            animation: bounce 2s cubic-bezier(0.77, 0, 0.175, 1) infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translate(-50%, 0); opacity: 1; }
+            50% { transform: translate(-50%, 10px); opacity: 0; }
+        }
+
+        .scroll-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.4em;
+        }
+
+        /* Progress Indicator */
+        #progress-bar-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            z-index: 40;
+        }
+
+        #progress-bar {
+            height: 100%;
+            width: 0%;
+            background: white;
+            transition: width 0.1s linear;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- VIBRANT BACKGROUND -->
+    <div class="vibrant-bg"></div>
+
+    <!-- LAYER 1: INTERNAL PAGE -->
+    <div id="layer-internal">
+        <header>
+            <div class="logo-container">
+                <div class="logo-circle">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg>
+                </div>
+                <div class="logo-text">TWINPRO</div>
+            </div>
+            <nav>
+                <a href="#about">Product</a>
+                <a href="#features">Features</a>
+                {% if user.is_authenticated %}
+                    <a href="{% url 'logout' %}">Logout</a>
+                {% endif %}
+            </nav>
+        </header>
+
+        <div class="hero-container">
+            <div class="hero-left">
+                <h1 class="title-font">CLONE YOUR MIND <span>PREDICT THE FUTURE.</span></h1>
+                <p>Digital Twin Pro creates a cognitive replica of your decision-making framework. Automate choices, debate scenarios, and explore your alternate realities.</p>
+                
+                <div class="btn-group">
+                    {% if user.is_authenticated %}
+                        <a href="{% url 'twin_dashboard' %}" class="btn btn-solid">ENTER DASHBOARD</a>
+                    {% else %}
+                        <a href="{% url 'register' %}" class="btn btn-solid">INITIALIZE TWIN</a>
+                        <a href="{% url 'login' %}" class="btn btn-outline">LOG IN</a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="hero-right">
+                <div class="ambient-circle-1"></div>
+                <div class="ambient-circle-2"></div>
+                
+                <div class="glass-card">
+                    <div class="glass-sub">STATUS: ONLINE<br>NEURAL SYNC: 98.4%</div>
+                    
+                    <div style="margin-top: auto;">
+                        <h2 class="glass-title title-font">COGNITIVE<br>MAPPING</h2>
+                        <div class="glass-icon-row">
+                            <div class="glass-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                            </div>
+                            <div class="glass-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LAYER 2: PORTAL CURTAIN -->
+    <div id="layer-curtain">
+        <svg preserveAspectRatio="xMidYMid slice" viewBox="0 0 1000 1000">
+            <defs>
+                <mask id="portal-mask">
+                    <rect width="100%" height="100%" fill="white" />
+                    <!-- The Zoom Target -->
+                    <g id="zoom-target" transform="translate(500, 500) scale(1)">
+                        <text class="title-font" x="0" y="0" text-anchor="middle" dominant-baseline="central" fill="black" style="font-size: 15vw;">TWIN</text>
+                    </g>
+                </mask>
+            </defs>
+            <rect width="100%" height="100%" fill="#050505" mask="url(#portal-mask)" />
+        </svg>
+    </div>
+
+    <!-- LAYER 3: INTRO UI -->
+    <div id="layer-intro">
+        <div class="mouse-icon"><div class="mouse-wheel"></div></div>
+        <div class="scroll-label">Scroll to unveil</div>
+    </div>
+
+    <!-- PROGRESS BAR -->
+    <div id="progress-bar-container">
+        <div id="progress-bar"></div>
+    </div>
+
+    <script>
+        // --- Virtual Scroll & Animation Logic ---
+        let progress = 0; // 0 to 1
+        let targetProgress = 0;
+        let isAutoAdvancing = false;
+
+        const layerInternal = document.getElementById('layer-internal');
+        const layerCurtain = document.getElementById('layer-curtain');
+        const zoomTarget = document.getElementById('zoom-target');
+        const layerIntro = document.getElementById('layer-intro');
+        const progressBar = document.getElementById('progress-bar');
+
+        // Cubic bezier easing function for smooth interpolation
+        function easeOutCubic(t) {
+            return 1 - Math.pow(1 - t, 3);
+        }
+
+        // Heavy cinematic easing for the mask scale
+        function cubicBezier(t, p0, p1, p2, p3) {
+            // Simplified approximation for (0.77, 0, 0.175, 1)
+            // For true accuracy, we just use a smooth steep curve based on progress
+            if (t < 0.5) return 4 * t * t * t;
+            const f = ((2 * t) - 2);
+            return 0.5 * f * f * f + 1;
+        }
+
+        function updateAnimation() {
+            // Smoothly interpolate current progress towards target
+            progress += (targetProgress - progress) * 0.05;
+            
+            // Stop loop if reached end
+            if (progress >= 0.999 && targetProgress === 1) {
+                progress = 1;
+            } else if (progress <= 0.001 && targetProgress === 0) {
+                progress = 0;
+            }
+
+            const easedProgress = cubicBezier(progress);
+
+            // 1. Update Intro UI (Fades and moves up quickly, done by 20%)
+            let introOpacity = 1 - (progress * 5);
+            introOpacity = Math.max(0, Math.min(1, introOpacity));
+            let introY = -(progress * 300); // moves up -60px at 20%
+            layerIntro.style.opacity = introOpacity;
+            layerIntro.style.transform = `translateY(${introY}px)`;
+
+            // 2. Update Zoom Mask (Scales from 1 to 220)
+            const minScale = 1;
+            const maxScale = 220;
+            const currentScale = minScale + (maxScale - minScale) * easedProgress;
+            zoomTarget.setAttribute('transform', `translate(500, 500) scale(${currentScale})`);
+
+            // 3. Fade out curtain near the end (85% to 100%)
+            if (progress > 0.85) {
+                const fadeProgress = (progress - 0.85) / 0.15;
+                layerCurtain.style.opacity = 1 - fadeProgress;
+            } else {
+                layerCurtain.style.opacity = 1;
+            }
+
+            // 4. Reveal Internal Content (Opacity, Scale, Blur handled via CSS class when near end)
+            // However, we can handle it smoothly via JS for better sync
+            const internalOpacity = Math.min(1, progress * 1.5);
+            const internalScale = 0.95 + (0.05 * easedProgress);
+            const internalBlur = 40 * (1 - progress);
+            
+            layerInternal.style.opacity = internalOpacity;
+            layerInternal.style.transform = `scale(${internalScale})`;
+            layerInternal.style.filter = `blur(${internalBlur}px)`;
+
+            // Pointer events control
+            if (progress > 0.9) {
+                layerInternal.style.pointerEvents = 'auto';
+            } else {
+                layerInternal.style.pointerEvents = 'none';
+            }
+
+            // 5. Progress Bar
+            progressBar.style.width = `${progress * 100}%`;
+
+            // Auto-advance trigger
+            if (progress > 0.3 && !isAutoAdvancing) {
+                isAutoAdvancing = true;
+                targetProgress = 1; // Force to end
+            }
+
+            if (progress < 1 || targetProgress < 1) {
+                requestAnimationFrame(updateAnimation);
+            }
+        }
+
+        // Handle Mouse Wheel
+        window.addEventListener('wheel', (e) => {
+            if (isAutoAdvancing) return;
+            
+            // Normalize delta
+            const delta = e.deltaY * 0.001; 
+            targetProgress += delta;
+            
+            // Clamp target
+            targetProgress = Math.max(0, Math.min(1, targetProgress));
+            
+            // Restart loop if it was stopped
+            requestAnimationFrame(updateAnimation);
+        }, { passive: false });
+        
+        // Touch support
+        let touchStartY = 0;
+        window.addEventListener('touchstart', (e) => {
+            touchStartY = e.touches[0].clientY;
+        });
+        window.addEventListener('touchmove', (e) => {
+            if (isAutoAdvancing) return;
+            const touchY = e.touches[0].clientY;
+            const delta = (touchStartY - touchY) * 0.005;
+            targetProgress += delta;
+            targetProgress = Math.max(0, Math.min(1, targetProgress));
+            touchStartY = touchY;
+            requestAnimationFrame(updateAnimation);
+        });
+
+        // Start render loop
+        requestAnimationFrame(updateAnimation);
+    </script>
+</body>
+</html>

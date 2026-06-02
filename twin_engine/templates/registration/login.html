@@ -1,422 +1,148 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Login - Digital Twin</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log in | TwinPro</title>
+    
+    <link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@900&f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root { --bg-dark: #050505; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background-color: var(--bg-dark);
+            color: white;
+            font-family: 'Satoshi', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+        h1, h2, .title-font {
+            font-family: 'Cabinet Grotesk', sans-serif;
+            font-weight: 900;
+            letter-spacing: -0.05em;
+        }
 
-<style>
-*{
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
-}
+        /* Vibrant Animated Background */
+        .vibrant-bg {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed, #f59e0b, #db2777);
+            background-size: 400% 400%;
+            animation: gradientAnim 15s ease infinite;
+            z-index: -2;
+        }
+        @keyframes gradientAnim {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
 
-body{
-  min-height:100vh;
-  font-family:'Inter',sans-serif;
-  background:#080816;
-  color:#fff;
-  overflow:hidden;
-}
+        /* Ambient Lights */
+        .ambient-circle-1 {
+            position: fixed; width: 400px; height: 400px; background: rgba(250, 204, 21, 0.3);
+            border-radius: 50%; filter: blur(80px); top: -10%; left: 0%; z-index: -1;
+        }
+        .ambient-circle-2 {
+            position: fixed; width: 400px; height: 400px; background: rgba(236, 72, 153, 0.3);
+            border-radius: 50%; filter: blur(80px); bottom: -10%; right: 0%; z-index: -1;
+        }
 
-.page{
-  min-height:100vh;
-  display:grid;
-  grid-template-columns:1fr 520px;
-  background:
-    radial-gradient(circle at 18% 35%,rgba(122,92,255,.42),transparent 32%),
-    radial-gradient(circle at 86% 78%,rgba(30,221,255,.35),transparent 28%),
-    linear-gradient(135deg,#080816,#10082b 55%,#070712);
-  position:relative;
-}
+        /* Glass Card */
+        .glass-card {
+            width: 100%;
+            max-width: 450px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 32px;
+            padding: 40px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: mistyReveal 1s cubic-bezier(0.77, 0, 0.175, 1) forwards;
+            opacity: 0;
+            transform: scale(0.92);
+            filter: blur(20px);
+        }
 
-.page::before{
-  content:"";
-  position:absolute;
-  inset:0;
-  background-image:
-    linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);
-  background-size:48px 48px;
-  opacity:.55;
-}
+        @keyframes mistyReveal {
+            to { opacity: 1; transform: scale(1); filter: blur(0px); }
+        }
 
-.left{
-  position:relative;
-  z-index:2;
-  padding:52px 76px;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-}
+        .logo-circle {
+            width: 48px; height: 48px;
+            background: white; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            color: #4f46e5; margin-bottom: 24px;
+        }
 
-.brand{
-  position:absolute;
-  top:50px;
-  left:76px;
-  display:flex;
-  align-items:center;
-  gap:14px;
-}
+        h1 { font-size: 2.5rem; margin-bottom: 8px; line-height: 1; }
+        .subtitle { color: rgba(255,255,255,0.7); font-size: 0.95rem; margin-bottom: 32px; }
 
-.logo{
-  width:46px;
-  height:46px;
-  border-radius:15px;
-  background:linear-gradient(135deg,#8b6cff,#63e9ff);
-  display:grid;
-  place-items:center;
-  font-weight:800;
-  box-shadow:0 16px 40px rgba(99,233,255,.25);
-}
+        .field { margin-bottom: 24px; }
+        .field label {
+            display: block; font-size: 0.85rem; font-weight: 700;
+            color: rgba(255,255,255,0.9); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;
+        }
+        .field input {
+            width: 100%; padding: 14px 16px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px; font-size: 1rem; color: white;
+            font-family: 'Satoshi', sans-serif; transition: all 0.3s;
+        }
+        .field input:focus {
+            outline: none; border-color: rgba(255,255,255,0.5); background: rgba(0, 0, 0, 0.4);
+        }
 
-.brand span{
-  font-size:22px;
-  font-weight:800;
-}
+        .btn-solid {
+            width: 100%; padding: 16px; border-radius: 9999px;
+            background: white; color: var(--bg-dark); border: none;
+            font-family: 'Satoshi', sans-serif; font-weight: 700; font-size: 1rem;
+            cursor: pointer; transition: all 0.3s; margin-top: 8px;
+        }
+        .btn-solid:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
 
-.hero{
-  max-width:650px;
-}
-
-.badge{
-  display:inline-block;
-  padding:11px 18px;
-  border-radius:999px;
-  border:1px solid rgba(255,255,255,.14);
-  background:rgba(255,255,255,.07);
-  color:#cbc6ff;
-  font-size:14px;
-  margin-bottom:30px;
-}
-
-h1{
-  font-size:76px;
-  line-height:.95;
-  letter-spacing:-.075em;
-  margin-bottom:28px;
-}
-
-h1 span{
-  background:linear-gradient(135deg,#fff,#a7f3ff,#9a86ff);
-  -webkit-background-clip:text;
-  color:transparent;
-}
-
-.hero p{
-  max-width:600px;
-  color:#bbb8d0;
-  font-size:18px;
-  line-height:1.8;
-}
-
-.cards{
-  display:flex;
-  gap:18px;
-  margin-top:42px;
-}
-
-.card{
-  width:150px;
-  padding:20px;
-  border-radius:22px;
-  background:rgba(255,255,255,.06);
-  border:1px solid rgba(255,255,255,.11);
-  backdrop-filter:blur(18px);
-}
-
-.card b{
-  display:block;
-  font-size:25px;
-  margin-bottom:8px;
-}
-
-.card small{
-  color:#aaa6c5;
-}
-
-.right{
-  position:relative;
-  z-index:3;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:46px;
-}
-
-.login-box{
-  width:100%;
-  padding:44px;
-  border-radius:34px;
-  background:
-    linear-gradient(180deg,rgba(255,255,255,.105),rgba(255,255,255,.055));
-  border:1px solid rgba(255,255,255,.16);
-  backdrop-filter:blur(34px);
-  box-shadow:0 40px 100px rgba(0,0,0,.42);
-}
-
-.login-box small{
-  color:#8df0ff;
-  font-weight:800;
-  letter-spacing:.14em;
-  font-size:11px;
-}
-
-.login-box h2{
-  margin-top:14px;
-  font-size:38px;
-  letter-spacing:-.05em;
-}
-
-.login-box p{
-  color:#b8b4cc;
-  margin:12px 0 32px;
-  line-height:1.6;
-}
-
-.field{
-  margin-bottom:19px;
-}
-
-label{
-  display:block;
-  margin-bottom:9px;
-  font-size:13px;
-  color:#e7e3ff;
-  font-weight:700;
-}
-
-.input{
-  height:56px;
-  border-radius:16px;
-  background:rgba(7,8,22,.72);
-  border:1px solid rgba(255,255,255,.12);
-  display:flex;
-  align-items:center;
-  padding:0 16px;
-  gap:12px;
-}
-
-.input span{
-  opacity:.9;
-}
-
-.input input{
-  width:100%;
-  height:100%;
-  background:transparent;
-  border:none;
-  outline:none;
-  color:white;
-  font-size:15px;
-  font-family:'Inter',sans-serif;
-}
-
-.input input::placeholder{
-  color:#77728e;
-}
-
-.input:focus-within{
-  border-color:#8df0ff;
-  box-shadow:0 0 0 4px rgba(141,240,255,.12);
-}
-
-.options{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin:8px 0 26px;
-  font-size:13px;
-  color:#c6c1da;
-}
-
-.options label{
-  margin:0;
-  display:flex;
-  align-items:center;
-  gap:8px;
-  font-weight:500;
-}
-
-.options input{
-  accent-color:#8df0ff;
-}
-
-.options a{
-  color:#8df0ff;
-  text-decoration:none;
-  font-weight:700;
-}
-
-.btn{
-  width:100%;
-  height:58px;
-  border:none;
-  border-radius:18px;
-  background:linear-gradient(135deg,#91f1ff,#b9f7ff,#987cff);
-  color:#080816;
-  font-weight:800;
-  font-size:15px;
-  cursor:pointer;
-  box-shadow:0 20px 44px rgba(0,229,255,.25);
-}
-
-.btn:hover{
-  transform:translateY(-2px);
-}
-
-.divider{
-  margin:28px 0;
-  display:flex;
-  align-items:center;
-  gap:14px;
-  color:#77738f;
-  font-size:12px;
-}
-
-.divider::before,
-.divider::after{
-  content:"";
-  height:1px;
-  flex:1;
-  background:rgba(255,255,255,.11);
-}
-
-.signup{
-  display:block;
-  height:54px;
-  line-height:54px;
-  text-align:center;
-  border-radius:17px;
-  border:1px solid rgba(255,255,255,.14);
-  color:white;
-  text-decoration:none;
-  font-weight:800;
-  background:rgba(255,255,255,.045);
-}
-
-@media(max-width:1050px){
-  body{overflow:auto;}
-  .page{
-    grid-template-columns:1fr;
-  }
-  .left{
-    padding:120px 32px 40px;
-  }
-  .brand{
-    left:32px;
-  }
-  h1{
-    font-size:54px;
-  }
-  .right{
-    padding:30px;
-  }
-}
-
-@media(max-width:600px){
-  h1{
-    font-size:42px;
-  }
-  .cards{
-    flex-direction:column;
-  }
-  .card{
-    width:100%;
-  }
-  .login-box{
-    padding:30px;
-  }
-}
-</style>
+        .footer-text { text-align: center; margin-top: 32px; font-size: 0.9rem; color: rgba(255,255,255,0.7); }
+        .footer-text a { color: white; text-decoration: none; font-weight: 700; border-bottom: 1px solid rgba(255,255,255,0.3); transition: all 0.2s; }
+        .footer-text a:hover { border-color: white; }
+    </style>
 </head>
-
 <body>
 
-<div class="page">
+    <div class="vibrant-bg"></div>
+    <div class="ambient-circle-1"></div>
+    <div class="ambient-circle-2"></div>
 
-  <section class="left">
-    <div class="brand">
-      <div class="logo">DT</div>
-      <span>Digital Twin</span>
+    <div class="glass-card">
+        <div class="logo-circle">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg>
+        </div>
+        
+        <h1 class="title-font">WELCOME BACK</h1>
+        <p class="subtitle">Access your cognitive replica.</p>
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="field">
+                <label>Username</label>
+                <input type="text" name="username" required>
+            </div>
+            <div class="field">
+                <label>Password</label>
+                <input type="password" name="password" required>
+            </div>
+            <button type="submit" class="btn-solid">AUTHORIZE</button>
+        </form>
+
+        <div class="footer-text">
+            No profile yet? <a href="{% url 'register' %}">Initialize</a>
+        </div>
     </div>
-
-    <div class="hero">
-      <div class="badge">AI-powered personal intelligence system</div>
-
-      <h1>
-        Meet your<br>
-        <span>Digital Twin.</span>
-      </h1>
-
-      <p>
-        A premium AI workspace that remembers your goals, understands your workflow,
-        and helps you manage conversations, insights, tasks and intelligent decisions.
-      </p>
-
-      <div class="cards">
-        <div class="card">
-          <b>24/7</b>
-          <small>AI Assistance</small>
-        </div>
-        <div class="card">
-          <b>Smart</b>
-          <small>Memory System</small>
-        </div>
-        <div class="card">
-          <b>Secure</b>
-          <small>Private Access</small>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="right">
-    <div class="login-box">
-      <small>SECURE LOGIN</small>
-      <h2>Welcome back</h2>
-      <p>Login to continue building your personal AI intelligence workspace.</p>
-
-      <form method="post">
-        {% csrf_token %}
-
-        <div class="field">
-          <label>Username</label>
-          <div class="input">
-            <span>👤</span>
-            <input type="text" name="username" placeholder="Enter your username" required>
-          </div>
-        </div>
-
-        <div class="field">
-          <label>Password</label>
-          <div class="input">
-            <span>🔒</span>
-            <input type="password" name="password" placeholder="Enter your password" required>
-          </div>
-        </div>
-
-        <div class="options">
-          <label>
-            <input type="checkbox">
-            Remember me
-          </label>
-          <a href="#">Forgot?</a>
-        </div>
-
-        <button type="submit" class="btn">Login to Dashboard</button>
-      </form>
-
-      <div class="divider">New here?</div>
-
-      <a href="{% url 'register' %}" class="signup">Create an account</a>
-    </div>
-  </section>
-
-</div>
 
 </body>
 </html>
