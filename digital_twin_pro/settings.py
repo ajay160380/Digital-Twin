@@ -95,5 +95,5 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # --- AUTHENTICATION SETTINGS FIX ---
 # ==========================================
 LOGIN_URL = '/accounts/login/'
-LOGIN_REDIRECT_URL = '/' 
+LOGIN_REDIRECT_URL = '/dashboard/' 
 LOGOUT_REDIRECT_URL = '/accounts/login/'

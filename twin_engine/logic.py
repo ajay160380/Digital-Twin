@@ -522,3 +522,124 @@ def get_funny_roast(mood: str) -> str:
         ]
     }
     return random.choice(roasts.get(mood, ["Mood sahi kar pehle, phir baat karenge."]))
+
+# ---------------------------------------------------------------------------
+# Daily Routine Generator
+# ---------------------------------------------------------------------------
+
+def get_daily_routine(user: AbstractBaseUser) -> list[dict]:
+    from .models import TwinSettings
+
+    profile = _fetch_profile(user)
+    
+    try:
+        settings = TwinSettings.objects.get(user=user)
+        twin_name = settings.bot_nickname or profile.name
+    except TwinSettings.DoesNotExist:
+        twin_name = profile.name
+
+    system_prompt = f"""\
+You are an AI routine generator. Generate a funny but highly optimized 5-event daily schedule for the user in Hinglish.
+User Name: {profile.name}
+Twin Alias: {twin_name}
+Traits: {profile.traits}
+Diet: {profile.diet}
+Sleep Cycle: {profile.sleep}
+Mood: {profile.mood}
+
+RULES:
+1. Return strictly a JSON array of 5 objects, representing a timeline for the day.
+2. Each object must have "time" (e.g., "08:00 AM"), "activity" (e.g., "Wake up and regret"), and "description" (a funny 1-line description of what to do).
+3. Do not wrap the JSON in Markdown (no ```json). Output raw JSON.
+Example output:
+[
+  {{"time": "10:00 AM", "activity": "Wake up slowly", "description": "Check phone for 30 minutes before leaving bed."}},
+  ...
+]
+"""
+    
+    user_prompt = "Generate my routine for today. Return ONLY JSON."
+
+    try:
+        completion = _groq_client().chat.completions.create(
+            model=_CFG.model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt} 
+            ],
+            temperature=0.7,
+            max_tokens=600,
+        )
+        
+        response_text = completion.choices[0].message.content.strip()
+        
+        start_idx = response_text.find('[')
+        end_idx = response_text.rfind(']') + 1
+        
+        if start_idx != -1 and end_idx != -1:
+            json_data = response_text[start_idx:end_idx]
+            return json.loads(json_data)
+        else:
+            return [{"time": "Error", "activity": "System Fault", "description": "JSON parsing failed."}]
+            
+    except Exception as e:
+        logger.error("Routine API Error: %s", e)
+        return [{"time": "Error", "activity": "API Failure", "description": "Groq API error. Try again later."}]
+
+# ---------------------------------------------------------------------------
+# Ghostwriter Auto-Responder
+# ---------------------------------------------------------------------------
+
+def get_ghostwriter_reply(user: AbstractBaseUser, sender: str, incoming_message: str) -> str:
+    from .models import TwinSettings
+
+    profile = _fetch_profile(user)
+    
+    try:
+        settings = TwinSettings.objects.get(user=user)
+        twin_name = settings.bot_nickname or profile.name
+        tone_level = settings.tone_level
+    except TwinSettings.DoesNotExist:
+        twin_name = profile.name
+        tone_level = 2
+
+    tone_desc = ""
+    if tone_level == 1:
+        tone_desc = "Highly professional and formal. Use clean language."
+    elif tone_level == 3:
+        tone_desc = "Extremely sarcastic, witty, and slightly rude (savage friend vibe)."
+    else:
+        tone_desc = "Casual, friendly, and normal."
+
+    system_prompt = f"""\
+You are an auto-responder "Ghostwriter" acting exactly like {profile.name}.
+Your job is to read an incoming message from '{sender}' and write the EXACT reply {profile.name} would send.
+
+Traits to mimic: {profile.traits}
+Current Mood: {profile.mood}
+Tone Level: {tone_desc}
+
+RULES:
+1. ONLY output the reply text. Do not add quotes, "Hey", or any AI explanations.
+2. Use Hinglish natively (how Indians chat on WhatsApp).
+3. If {profile.name} is sleepy/lazy (Night Owl) or Stressed, reflect that in the text.
+4. Keep it short (1-3 sentences max) like a real text message.
+"""
+    
+    user_prompt = f"Message received from {sender}: '{incoming_message}'\n\nWrite my exact reply:"
+
+    try:
+        completion = _groq_client().chat.completions.create(
+            model=_CFG.model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt} 
+            ],
+            temperature=0.8,
+            max_tokens=200,
+        )
+        return completion.choices[0].message.content.strip()
+            
+    except Exception as e:
+        logger.error("Ghostwriter API Error: %s", e)
+        return "Bhai server fat gaya lagta hai. Khud type karle reply!"

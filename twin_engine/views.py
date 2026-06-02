@@ -19,7 +19,7 @@ from django.shortcuts import redirect, render
 from django.views.decorators.http import require_http_methods
 
 from .models import PastChoice, TwinSettings, UserPreference
-from .logic import get_ai_debate, get_digital_twin_prediction, get_funny_roast, stream_digital_twin_prediction
+from .logic import get_ai_debate, get_digital_twin_prediction, get_funny_roast, stream_digital_twin_prediction, get_daily_routine, get_ghostwriter_reply
 
 logger = logging.getLogger(__name__)
 
@@ -127,8 +127,14 @@ def logout_view(request: HttpRequest):
 
 
 # ──────────────────────────────────────────────────────────────
-# 2. MAIN DASHBOARD VIEW
+# 2. HOME & MAIN DASHBOARD VIEWS
 # ──────────────────────────────────────────────────────────────
+
+def home(request: HttpRequest):
+    """Landing page view. Redirects to dashboard if logged in."""
+    if request.user.is_authenticated:
+        return redirect("twin_dashboard")
+    return render(request, "home.html")
 
 @login_required
 @require_http_methods(["GET", "POST"])
@@ -152,9 +158,14 @@ def twin_dashboard(request: HttpRequest):
         if action == "update_twin_settings":
             return _handle_update_settings(request, user)
             
-        # ✅ NAYA ACTION: Rating save karne ke liye
         if action == "rate_prediction":
             return _handle_rate_prediction(request, user)
+
+        if action == "get_routine":
+            return _handle_routine(request, user)
+            
+        if action == "get_ghostwriter":
+            return _handle_ghostwriter(request, user)
 
         # Unknown POST action
         return _json_error(f"Unknown action. POST keys received: {', '.join(request.POST.keys()) or 'none'}", status=400)
@@ -193,13 +204,12 @@ def twin_dashboard(request: HttpRequest):
 
 def _detect_action(request: HttpRequest) -> str | None:
     """Return the first recognized action key from POST data, even if button value is empty."""
-    # ✅ ADDED rate_prediction here
-    for action in ("get_prediction", "get_debate", "update_twin_settings", "rate_prediction"):
+    for action in ("get_prediction", "get_debate", "update_twin_settings", "rate_prediction", "get_routine", "get_ghostwriter"):
         if action in request.POST:
             return action
 
     posted_action = request.POST.get("action", "").strip()
-    if posted_action in {"get_prediction", "get_debate", "update_twin_settings", "rate_prediction"}:
+    if posted_action in {"get_prediction", "get_debate", "update_twin_settings", "rate_prediction", "get_routine", "get_ghostwriter"}:
         return posted_action
 
     return None
@@ -299,6 +309,34 @@ def _handle_debate(request: HttpRequest, user) -> JsonResponse:
         return _json_error(f"Debate error: {exc}", status=500)
 
     return _json_ok({"script": script})
+
+
+def _handle_routine(request: HttpRequest, user) -> JsonResponse:
+    """AJAX handler: generate an AI daily routine."""
+    try:
+        routine = get_daily_routine(user)
+    except Exception as exc:
+        logger.exception("Routine generation failed for user %s", user.username)
+        return _json_error(f"Routine error: {exc}", status=500)
+
+    return _json_ok({"routine": routine})
+
+
+def _handle_ghostwriter(request: HttpRequest, user) -> JsonResponse:
+    """AJAX handler: generate an auto-reply."""
+    sender = request.POST.get("sender", "").strip()
+    message = request.POST.get("message", "").strip()
+
+    if not sender or not message:
+        return _json_error("Sender and Message cannot be empty.")
+
+    try:
+        reply = get_ghostwriter_reply(user, sender, message)
+    except Exception as exc:
+        logger.exception("Ghostwriter failed for user %s", user.username)
+        return _json_error(f"Ghostwriter error: {exc}", status=500)
+
+    return _json_ok({"reply": reply})
 
 
 def _handle_update_settings(request: HttpRequest, user):
