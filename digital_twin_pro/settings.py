@@ -5,6 +5,7 @@ Django settings for digital_twin_pro project.
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+import dj_database_url
 
 
 load_dotenv()
@@ -61,11 +62,18 @@ WSGI_APPLICATION = 'digital_twin_pro.wsgi.application'
 
 # Database
 DATABASES = {
-    'default': {
+    'default': dj_database_url.config(
+        default=os.getenv('DATABASE_URL'),
+        conn_max_age=600,
+        conn_health_checks=True,
+    )
+}
+# Fallback to sqlite if DATABASE_URL is somehow missing
+if not os.getenv('DATABASE_URL'):
+    DATABASES['default'] = {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
-}
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
