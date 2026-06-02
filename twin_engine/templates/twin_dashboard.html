@@ -1,651 +1,619 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Digital Twin — AI Doppelganger</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<title>Workspace | Digital Twin</title>
+<link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@900&f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 :root {
-  --bg: #0a0b0f;
-  --surface: #111318;
-  --surface2: #181c24;
-  --surface3: #1e2330;
-  --accent: #c8f135;
-  --accent-dim: rgba(200,241,53,0.12);
-  --accent2: #35f1c8;
-  --accent3: #f17035;
-  --text: #eef0f8;
-  --text-muted: #5a6280;
-  --text-mid: #8892b0;
-  --border: rgba(255,255,255,0.07);
-  --border-hover: rgba(200,241,53,0.25);
-  --shadow: 0 4px 24px rgba(0,0,0,0.4);
-  --radius: 16px;
-  --radius-sm: 10px;
-  --radius-full: 999px;
-  --font: 'Space Grotesk', sans-serif;
-  --font-serif: 'Instrument Serif', serif;
-  --transition: 0.2s ease;
+  --bg: #030303;
+  --surface: rgba(255, 255, 255, 0.03);
+  --surface-hover: rgba(255, 255, 255, 0.06);
+  --surface-active: rgba(255, 255, 255, 0.09);
+  --border: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 255, 255, 0.15);
+  --text: #ffffff;
+  --text-dim: rgba(255, 255, 255, 0.4);
+  --text-muted: rgba(255, 255, 255, 0.7);
+  --accent: #a78bfa;
+  --accent-glow: rgba(167, 139, 250, 0.3);
+  --success: #34d399;
+  --danger: #fb7185;
+  --font-main: 'Satoshi', sans-serif;
+  --font-display: 'Cabinet Grotesk', sans-serif;
+  --radius-lg: 24px;
+  --radius-md: 16px;
+  --radius-sm: 8px;
+  --transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
-[data-theme="light"] {
-  --bg: #f4f5f0;
-  --surface: #ffffff;
-  --surface2: #f0f1ec;
-  --surface3: #e8e9e4;
-  --accent: #4a7c00;
-  --accent-dim: rgba(74,124,0,0.1);
-  --accent2: #007a65;
-  --accent3: #c84a00;
-  --text: #1a1c22;
-  --text-muted: #9098a8;
-  --text-mid: #505870;
-  --border: rgba(0,0,0,0.08);
-  --border-hover: rgba(74,124,0,0.3);
-  --shadow: 0 4px 24px rgba(0,0,0,0.08);
+* { box-sizing: border-box; margin: 0; padding: 0; }
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+
+body {
+  font-family: var(--font-main);
+  background-color: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
 }
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; }
+/* Background Noise */
+.noise {
+  position: fixed; inset: 0; pointer-events: none; z-index: 100;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+}
 
-body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; transition: background var(--transition), color var(--transition); }
+/* Ambient Glow */
+.glow-orb { position: absolute; width: 600px; height: 600px; background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%); border-radius: 50%; top: -200px; right: -200px; filter: blur(80px); pointer-events: none; z-index: 0; }
 
-/* Grid BG */
-body::before { content: ''; position: fixed; inset: 0; background-image: linear-gradient(rgba(200,241,53,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(200,241,53,0.025) 1px, transparent 1px); background-size: 48px 48px; pointer-events: none; z-index: 0; opacity: 1; transition: opacity var(--transition); }
-[data-theme="light"] body::before { opacity: 0; }
+/* Layout: Sidebar + Main Content */
+.sidebar {
+  width: 280px;
+  height: 100vh;
+  background: rgba(0,0,0,0.6);
+  border-right: 1px solid var(--border);
+  backdrop-filter: blur(40px);
+  display: flex;
+  flex-direction: column;
+  padding: 32px 24px;
+  z-index: 10;
+  position: relative;
+  transition: width 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
 
-/* Subtle orb */
-.orb { position: fixed; border-radius: 50%; filter: blur(90px); pointer-events: none; z-index: 0; transition: opacity var(--transition); }
-.orb-1 { width: 420px; height: 420px; background: #c8f135; top: -160px; left: -120px; opacity: 0.07; }
-.orb-2 { width: 320px; height: 320px; background: #35f1c8; bottom: -120px; right: -80px; opacity: 0.06; }
-[data-theme="light"] .orb { opacity: 0 !important; }
+.main-content {
+  flex: 1;
+  height: 100vh;
+  position: relative;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+}
 
-/* ── Layout ── */
-.wrapper { position: relative; z-index: 1; max-width: 840px; margin: 0 auto; padding: 40px 20px 80px; }
+/* Sidebar Elements */
+.brand { margin-bottom: 48px; display: flex; align-items: center; gap: 12px; }
+.brand-icon { width: 40px; height: 40px; background: white; color: var(--bg); border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+.brand-title { font-family: var(--font-display); font-size: 24px; font-weight: 900; letter-spacing: -0.02em; text-transform: uppercase; }
 
-/* ── Topbar ── */
-.topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 48px; }
-.brand { display: flex; align-items: center; gap: 10px; }
-.brand-icon { width: 36px; height: 36px; border-radius: 10px; background: var(--accent-dim); border: 1px solid var(--border-hover); display: flex; align-items: center; justify-content: center; font-size: 17px; }
-.brand-name { font-size: 15px; font-weight: 600; color: var(--text); letter-spacing: -0.3px; }
-.brand-tag { font-size: 11px; color: var(--text-muted); font-weight: 400; }
-.topbar-right { display: flex; align-items: center; gap: 10px; }
+.nav-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-dim); margin-bottom: 12px; padding-left: 12px; }
+.nav-menu { display: flex; flex-direction: column; gap: 4px; margin-bottom: 40px; position: relative; }
+.nav-item {
+  display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+  border-radius: var(--radius-sm); color: var(--text-muted); font-weight: 600; font-size: 14px;
+  text-decoration: none; transition: all 0.3s ease; cursor: pointer; border: 1px solid transparent;
+  position: relative; z-index: 2;
+}
+.nav-item svg { opacity: 0.6; transition: var(--transition); }
+.nav-item:hover { color: white; transform: translateX(4px); }
+.nav-item.active { color: white; text-shadow: 0 0 10px rgba(255,255,255,0.3); }
+.nav-item.active svg { opacity: 1; color: var(--accent); filter: drop-shadow(0 0 8px var(--accent-glow)); }
 
-/* Profile Button */
-.profile-btn { font-size: 13px; font-weight: 600; color: var(--text); background: var(--surface2); padding: 8px 16px; border-radius: 99px; border: 1px solid var(--border); cursor: pointer; transition: all var(--transition); display: flex; align-items: center; gap: 6px; font-family: var(--font); }
-.profile-btn:hover { background: var(--surface3); border-color: var(--accent); color: var(--accent); }
+/* Holographic Glider */
+.nav-glider {
+  position: absolute;
+  left: 0; right: 0; height: 44px;
+  background: linear-gradient(90deg, rgba(167, 139, 250, 0.15) 0%, rgba(255,255,255,0.05) 100%);
+  border: 1px solid rgba(167, 139, 250, 0.3);
+  border-radius: var(--radius-sm);
+  transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+  z-index: 1;
+  pointer-events: none;
+  box-shadow: 0 0 20px rgba(167, 139, 250, 0.1);
+}
 
-.theme-btn { width: 38px; height: 38px; border-radius: var(--radius-sm); background: var(--surface); border: 1px solid var(--border); cursor: pointer; color: var(--text-mid); font-size: 16px; display: flex; align-items: center; justify-content: center; transition: all var(--transition); }
-.theme-btn:hover { border-color: var(--border-hover); color: var(--text); }
+.user-card { margin-top: auto; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); display: flex; align-items: center; gap: 12px; }
+.user-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #a78bfa, #ec4899); display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-weight: 900; font-size: 18px; }
+.user-info { flex: 1; }
+.user-name { font-size: 14px; font-weight: 700; }
+.user-status { font-size: 11px; color: var(--success); display: flex; align-items: center; gap: 4px; margin-top: 4px; }
+.status-dot { width: 6px; height: 6px; background: var(--success); border-radius: 50%; box-shadow: 0 0 8px var(--success); }
 
-.status-pill { display: flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-full); padding: 6px 14px; font-size: 12px; color: var(--text-mid); font-weight: 500; }
-.status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: blink 2s ease-in-out infinite; }
-@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+/* Tab Panes */
+.tab-pane { display: none; flex: 1; flex-direction: column; overflow-y: auto; padding: 48px; padding-bottom: 100px; animation: fadeIn 0.4s ease; }
+.tab-pane.active { display: flex; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-/* ── Hero ── */
-.hero { text-align: center; margin-bottom: 40px; }
-.hero h1 { font-size: clamp(32px, 6vw, 62px); font-weight: 700; letter-spacing: -2px; line-height: 1.05; margin-bottom: 14px; }
-.hero h1 em { font-family: var(--font-serif); font-style: italic; font-weight: 400; color: var(--accent); letter-spacing: -1px; }
-.hero p { font-size: 15px; color: var(--text-muted); font-weight: 400; max-width: 400px; margin: 0 auto; line-height: 1.7; }
+/* View Headers */
+.view-header { margin-bottom: 48px; max-width: 800px; margin-left: auto; margin-right: auto; width: 100%; }
+.view-title { font-family: var(--font-display); font-size: 48px; font-weight: 900; line-height: 1.1; margin-bottom: 8px; letter-spacing: -0.02em; }
+.view-subtitle { font-size: 16px; color: var(--text-muted); font-weight: 500; }
 
-/* ── Stats ── */
-.stats-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 24px; } /* Removed 3rd column for Streak */
-.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px 14px; text-align: center; transition: border-color var(--transition); }
-.stat-card:hover { border-color: var(--border-hover); }
-.stat-num { font-size: 26px; font-weight: 700; color: var(--accent); letter-spacing: -1px; line-height: 1; margin-bottom: 4px; }
-.stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1.2px; font-weight: 500; }
+/* Content Containers */
+.content-container { max-width: 800px; margin: 0 auto; width: 100%; }
 
-/* ── Card ── */
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 16px; transition: border-color var(--transition), background var(--transition); }
-.card:hover { border-color: rgba(255,255,255,0.1); }
-
-/* ── Section Header ── */
-.section-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
-.section-icon { width: 32px; height: 32px; border-radius: 8px; background: var(--accent-dim); display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
-.section-icon.teal { background: rgba(53,241,200,0.1); }
-.section-icon.orange { background: rgba(241,112,53,0.1); }
-.section-icon.red { background: rgba(255, 71, 87, 0.1); }
-.section-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
-.section-sub { font-size: 12px; color: var(--text-muted); font-weight: 400; }
-
-/* ── Form ── */
-.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+/* Glass Forms & Inputs */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
 .form-grid .full { grid-column: 1 / -1; }
-.field { display: flex; flex-direction: column; gap: 6px; }
-.field-label { font-size: 11px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: var(--text-muted); }
-.field-input, .field-select, .field-textarea { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-family: var(--font); font-size: 14px; padding: 11px 14px; width: 100%; outline: none; transition: border-color var(--transition), background var(--transition); -webkit-appearance: none; }
-.field-select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath fill='%235a6280' d='M5 6L0 0h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; cursor: pointer; }
-.field-select option { background: #181c24; color: #eef0f8; }
-[data-theme="light"] .field-select option { background: #fff; color: #1a1c22; }
-.field-textarea { resize: vertical; min-height: 90px; line-height: 1.6; }
-.field-input:focus, .field-select:focus, .field-textarea:focus { border-color: var(--border-hover); background: var(--surface3); }
-
-/* ── Divider & Toggle ── */
-.divider { display: flex; align-items: center; gap: 14px; margin: 20px 0; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-muted); }
-.divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-.toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); }
-.toggle-row:last-of-type { border-bottom: none; }
-.toggle-info h4 { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 2px; }
-.toggle-info p { font-size: 11px; color: var(--text-muted); }
-.toggle { position: relative; width: 42px; height: 22px; flex-shrink: 0; }
-.toggle input { opacity: 0; width: 0; height: 0; }
-.toggle-slider { position: absolute; inset: 0; background: var(--surface3); border: 1px solid var(--border); border-radius: var(--radius-full); cursor: pointer; transition: 0.25s; }
-.toggle-slider::before { content: ''; position: absolute; width: 14px; height: 14px; left: 3px; top: 50%; transform: translateY(-50%); background: var(--text-muted); border-radius: 50%; transition: 0.25s; }
-.toggle input:checked + .toggle-slider { background: var(--accent-dim); border-color: var(--border-hover); }
-.toggle input:checked + .toggle-slider::before { left: 23px; background: var(--accent); }
-
-/* ── Buttons ── */
-.btn-primary { background: var(--accent); color: #0a0b0f; font-family: var(--font); font-size: 13px; font-weight: 700; letter-spacing: 0.5px; border: none; border-radius: var(--radius-sm); padding: 13px 24px; cursor: pointer; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 8px; justify-content: center; }
-.btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
-.btn-primary:active { transform: translateY(0); opacity: 1; }
-.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-
-.btn-danger { background: rgba(255, 71, 87, 0.1); color: #ff4757; font-family: var(--font); font-size: 13px; font-weight: 600; border: 1px solid rgba(255, 71, 87, 0.3); border-radius: var(--radius-sm); padding: 11px 20px; cursor: pointer; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 8px; justify-content: center; width: 100%; margin-top: 15px; }
-.btn-danger:hover { background: rgba(255, 71, 87, 0.2); border-color: #ff4757; }
-
-.btn-secondary { background: transparent; border: 1px solid var(--border); color: var(--text-mid); font-family: var(--font); font-size: 13px; font-weight: 500; border-radius: var(--radius-sm); padding: 11px 20px; cursor: pointer; transition: all var(--transition); display: inline-flex; align-items: center; gap: 8px; }
-.btn-secondary:hover { border-color: var(--border-hover); color: var(--text); background: var(--accent-dim); }
-.btn-icon { background: var(--surface2); border: 1px solid var(--border); color: var(--text-mid); border-radius: var(--radius-sm); width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 15px; transition: all var(--transition); }
-.btn-icon:hover { border-color: var(--border-hover); color: var(--text); }
-.btn-row { display: flex; gap: 10px; align-items: center; }
-
-/* ── Chat / Predict section ── */
-.chat-area { display: flex; flex-direction: column; gap: 14px; }
-.chips-label { font-size: 11px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
-.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
-.chip { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-full); padding: 6px 12px; font-size: 12px; color: var(--text-muted); cursor: pointer; transition: all 0.15s ease; white-space: nowrap; user-select: none; font-family: var(--font); }
-.chip:hover, .chip.active { background: var(--accent-dim); border-color: var(--border-hover); color: var(--accent); }
-.mood-row { display: flex; flex-wrap: wrap; gap: 6px; }
-.mood-pill { padding: 7px 14px; border-radius: var(--radius-full); background: var(--surface2); border: 1px solid var(--border); font-size: 12px; cursor: pointer; transition: all 0.15s; user-select: none; font-family: var(--font); color: var(--text-mid); }
-.mood-pill:hover, .mood-pill.active { background: var(--accent-dim); border-color: var(--border-hover); color: var(--accent); }
-
-/* Rating Styles for Accuracy buttons */
-.mood-pill.active-agree { background: rgba(53,241,200,0.15); border-color: #35f1c8; color: #35f1c8; cursor: default; font-weight: 600;}
-.mood-pill.active-disagree { background: rgba(255, 71, 87, 0.15); border-color: #ff4757; color: #ff4757; cursor: default; font-weight: 600;}
-.mood-pill.disabled { opacity: 0.4; pointer-events: none; }
-
-.textarea-wrap { position: relative; }
-.char-count { position: absolute; bottom: 10px; right: 12px; font-size: 11px; color: var(--text-muted); pointer-events: none; background: var(--surface2); padding: 2px 6px; border-radius: 4px; }
-
-/* ── Roast-o-Meter ── */
-#roastMeterContainer { display: none; margin-top: 20px; background: var(--surface3); padding: 15px; border-radius: var(--radius-sm); border: 1px solid var(--border); }
-.meter-bar { width: 100%; height: 8px; background: var(--bg); border-radius: 10px; overflow: hidden; margin-top: 8px; border: 1px solid var(--border); }
-.meter-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #35f1c8, #f1c40f, #e74c3c); transition: width 1s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-
-/* ── Output Card ── */
-.output-card { background: var(--surface2); border: 1px solid var(--border-hover); border-radius: var(--radius); padding: 24px; position: relative; overflow: hidden; margin-top: 16px; }
-.output-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, var(--accent), var(--accent2)); opacity: 0.6; }
-.output-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-.output-tag { display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--accent); }
-.output-text { font-family: var(--font-serif); font-size: 19px; font-style: italic; line-height: 1.75; color: var(--text); }
-.output-footer { display: flex; align-items: center; gap: 12px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
-.meta-item { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 5px; }
-.typing-indicator { display: flex; gap: 5px; align-items: center; padding: 4px 0; }
-.typing-indicator span { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); opacity: 0.4; animation: typingBounce 1.2s ease-in-out infinite; }
-.typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
-.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
-@keyframes typingBounce { 0%, 100% { opacity: 0.4; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-4px); } }
-.reaction-row { display: flex; gap: 8px; justify-content: flex-start; flex-wrap: wrap; margin-top: 12px; }
-.copy-btn { background: var(--surface3); border: 1px solid var(--border); border-radius: 8px; padding: 5px 12px; font-size: 11px; color: var(--text-muted); cursor: pointer; transition: all var(--transition); font-family: var(--font); display: flex; align-items: center; gap: 5px; }
-.copy-btn:hover { color: var(--text); border-color: var(--border-hover); }
-
-/* ── History ── */
-.history-list { display: flex; flex-direction: column; gap: 10px; }
-.history-item { display: flex; gap: 12px; padding: 14px; background: var(--surface2); border-radius: var(--radius-sm); border: 1px solid var(--border); align-items: flex-start; transition: border-color var(--transition); }
-.history-item:hover { border-color: var(--border-hover); }
-.h-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent2); flex-shrink: 0; margin-top: 5px; }
-.h-scenario { font-size: 12px; color: var(--text-muted); margin-bottom: 3px; }
-.h-choice { font-size: 13px; color: var(--text); font-weight: 500; }
-.h-time { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
-
-/* ── Fade Up Anim ── */
-.fade-up { animation: fadeUp 0.6s ease both; }
-@keyframes fadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
-.fade-up:nth-child(2) { animation-delay: 0.08s; }
-.fade-up:nth-child(3) { animation-delay: 0.16s; }
-.fade-up:nth-child(4) { animation-delay: 0.24s; }
-.fade-up:nth-child(5) { animation-delay: 0.32s; }
-
-/* ── Profile Modal Styles ── */
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); z-index: 1000; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: all 0.3s ease; }
-.modal-overlay.active { opacity: 1; visibility: visible; }
-.modal-content { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); width: 90%; max-width: 400px; padding: 24px; box-shadow: var(--shadow); transform: scale(0.95); transition: all 0.3s ease; }
-.modal-overlay.active .modal-content { transform: scale(1); }
-.modal-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border); }
-.profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px; }
-.p-card { background: var(--surface2); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); }
-.p-label { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 4px; }
-.p-val { font-size: 14px; font-weight: 600; color: var(--text); }
-
-@media (max-width: 600px) {
-  .form-grid { grid-template-columns: 1fr; }
-  .stats-row { grid-template-columns: 1fr 1fr; }
-  .btn-row { flex-wrap: wrap; }
-  .card { padding: 20px; }
-  .brand-name { display: none; }
+.form-group { display: flex; flex-direction: column; gap: 8px; }
+.form-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); }
+.form-input, .form-select, .form-textarea {
+  width: 100%; padding: 16px; background: rgba(0,0,0,0.2); border: 1px solid var(--border);
+  border-radius: var(--radius-md); color: white; font-family: var(--font-main); font-size: 15px;
+  transition: var(--transition); outline: none; -webkit-appearance: none;
 }
+.form-input:focus, .form-select:focus, .form-textarea:focus { border-color: rgba(255,255,255,0.4); background: rgba(0,0,0,0.4); box-shadow: 0 0 0 4px rgba(255,255,255,0.05); }
+.form-select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath fill='%23ffffff' d='M5 6L0 0h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 16px center; padding-right: 48px; }
+.form-select option { background: #050505; color: white; }
+.form-textarea { resize: vertical; min-height: 100px; line-height: 1.5; }
+
+/* Buttons */
+.btn {
+  padding: 16px 32px; border-radius: 99px; font-family: var(--font-main); font-size: 14px; font-weight: 700;
+  cursor: pointer; transition: var(--transition); border: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn-primary { background: white; color: var(--bg); }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(255,255,255,0.15); }
+.btn-secondary { background: var(--surface); color: white; border: 1px solid var(--border); }
+.btn-secondary:hover { background: var(--surface-hover); border-color: var(--border-hover); }
+.btn-danger { background: rgba(251, 113, 133, 0.1); color: var(--danger); border: 1px solid rgba(251, 113, 133, 0.2); }
+.btn-danger:hover { background: rgba(251, 113, 133, 0.2); border-color: var(--danger); }
+
+/* --- Tab 1: Predict (Chat UI) --- */
+.chat-window { display: flex; flex-direction: column; gap: 24px; min-height: 400px; justify-content: flex-end; margin-bottom: 32px; }
+
+/* Output Bubble */
+.output-bubble { background: linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%); border: 1px solid rgba(255,255,255,0.1); border-top: 1px solid rgba(255,255,255,0.2); border-radius: var(--radius-lg); padding: 32px; animation: slideUp 0.4s ease; box-shadow: 0 20px 40px rgba(0,0,0,0.5); position: relative; backdrop-filter: blur(20px); }
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+.bubble-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--accent); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+.bubble-text { font-size: 20px; line-height: 1.6; color: white; font-weight: 500; }
+
+/* Audio Waveform Animation */
+.waveform { display: flex; align-items: center; gap: 3px; height: 16px; margin-left: 12px; }
+.waveform span { display: block; width: 3px; background: var(--accent); border-radius: 3px; animation: bounce 1.2s ease infinite alternate; }
+.waveform span:nth-child(2) { animation-delay: -0.2s; background: var(--success); }
+.waveform span:nth-child(3) { animation-delay: -0.4s; background: #fb7185; }
+.waveform span:nth-child(4) { animation-delay: -0.6s; background: var(--accent); }
+@keyframes bounce { 0% { height: 4px; } 100% { height: 16px; } }
+
+.action-row { display: flex; gap: 12px; margin-top: 24px; border-top: 1px solid var(--border); padding-top: 24px; }
+.action-pill { padding: 8px 20px; border-radius: 99px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); font-size: 13px; font-weight: 700; cursor: pointer; transition: var(--transition); color: white; display: flex; align-items: center; gap: 8px; }
+.action-pill:hover { background: white; color: var(--bg); border-color: white; }
+.action-pill.active-agree { background: var(--success); color: var(--bg); border-color: var(--success); pointer-events: none; }
+.action-pill.active-disagree { background: rgba(251, 113, 133, 0.2); color: var(--danger); border-color: rgba(251, 113, 133, 0.4); pointer-events: none; }
+
+/* Input Area Fixed Bottom */
+.input-dock { position: sticky; bottom: 0; background: var(--bg); padding-top: 24px; z-index: 20; border-top: 1px solid transparent; }
+.input-area { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 8px; display: flex; flex-direction: column; gap: 12px; transition: border-color var(--transition); box-shadow: 0 10px 30px rgba(0,0,0,0.5); backdrop-filter: blur(20px); }
+.input-area:focus-within { border-color: rgba(255,255,255,0.3); }
+
+.quick-chips { display: flex; gap: 8px; overflow-x: auto; padding: 4px 8px; scrollbar-width: none; }
+.quick-chips::-webkit-scrollbar { display: none; }
+.chip { flex-shrink: 0; padding: 6px 16px; background: transparent; border: 1px solid var(--border); border-radius: 99px; font-size: 12px; font-weight: 600; color: var(--text-muted); cursor: pointer; transition: var(--transition); }
+.chip:hover { background: rgba(255,255,255,0.1); color: white; border-color: rgba(255,255,255,0.3); }
+
+.chat-input-wrapper { display: flex; gap: 12px; align-items: flex-end; padding: 0 12px 12px 12px; }
+.chat-textarea { flex: 1; background: transparent; border: none; color: white; font-family: var(--font-main); font-size: 18px; resize: none; outline: none; padding: 12px 0; max-height: 150px; line-height: 1.5; font-weight: 500; }
+.chat-textarea::placeholder { color: var(--text-dim); }
+.send-btn { width: 56px; height: 56px; border-radius: 50%; background: white; color: var(--bg); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: var(--transition); flex-shrink: 0; box-shadow: 0 0 20px rgba(255,255,255,0.2); }
+.send-btn:hover { transform: scale(1.05); box-shadow: 0 0 30px rgba(255,255,255,0.4); }
+.send-btn:disabled { opacity: 0.5; pointer-events: none; transform: scale(0.95); }
+
+/* Roast Meter */
+#roastMeterContainer { display: none; margin-top: 24px; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 24px; }
+.meter-track { height: 8px; background: rgba(255,255,255,0.1); border-radius: 99px; overflow: hidden; margin-top: 12px; }
+.meter-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), var(--danger)); transition: width 1s cubic-bezier(0.25, 1, 0.5, 1); }
+
+/* --- Tab 2: Debate --- */
+.debate-log { display: flex; flex-direction: column; gap: 16px; margin-top: 32px; padding: 24px; background: rgba(0,0,0,0.2); border-radius: var(--radius-lg); border: 1px solid var(--border); min-height: 300px; }
+.debate-bubble { padding: 16px 24px; border-radius: 16px; font-size: 15px; line-height: 1.6; max-width: 80%; animation: slideUp 0.3s ease; }
+.debate-bubble.twin { background: rgba(255,255,255,0.1); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
+.debate-bubble.opponent { background: rgba(0,0,0,0.4); color: var(--text-muted); align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid var(--border); }
+
+/* --- Tab 3: History --- */
+.history-list { display: flex; flex-direction: column; gap: 16px; }
+.history-item { padding: 24px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); transition: var(--transition); }
+.history-item:hover { background: var(--surface-hover); border-color: rgba(255,255,255,0.2); transform: translateY(-2px); }
+.h-scen { font-size: 14px; color: var(--text-muted); margin-bottom: 8px; font-weight: 500; }
+.h-pred { font-size: 18px; font-weight: 700; color: white; line-height: 1.4; }
+
+/* Dashboard Stats Grid */
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 48px; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 32px; display: flex; flex-direction: column; }
+.stat-val { font-family: var(--font-display); font-size: 64px; font-weight: 900; line-height: 1; margin-bottom: 8px; }
+.stat-lbl { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); }
+
+/* Routine Generator Elements */
+.routine-timeline { display: flex; flex-direction: column; gap: 16px; margin-top: 24px; }
+.routine-item { display: flex; gap: 24px; background: rgba(0,0,0,0.3); padding: 20px; border-radius: var(--radius-md); border-left: 4px solid var(--accent); animation: fadeIn 0.4s ease; }
+.r-time { font-family: var(--font-display); font-size: 20px; font-weight: 900; color: var(--accent); min-width: 100px; }
+.r-content { flex: 1; }
+.r-act { font-size: 16px; font-weight: 700; margin-bottom: 4px; color: white; }
+.r-desc { font-size: 14px; color: var(--text-muted); }
+
 </style>
 </head>
 <body>
 
-<div class="orb orb-1"></div>
-<div class="orb orb-2"></div>
+<div class="noise"></div>
+<div class="glow-orb"></div>
 
-<div class="wrapper">
-
-  <div class="topbar fade-up">
-    <div class="brand">
-      <div class="brand-icon">🧠</div>
-      <div>
-        <div class="brand-name">Digital Twin by Manya & Ajay</div>
-        <div class="brand-tag">{{ twin_settings.bot_nickname|default:"AI Doppelganger" }}</div>
-      </div>
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand-icon">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg>
     </div>
-    <div class="topbar-right">
-      <button class="profile-btn" onclick="openProfileModal()">
-        👤 {{ user.username|default:"Ajay" }}/twin
-      </button>
+    <div class="brand-title">TWINPRO</div>
+  </div>
+
+  <div class="nav-label">Workspace</div>
+  <nav class="nav-menu" id="workspace-menu">
+    <div class="nav-glider" id="workspace-glider" style="transform: translateY(0px);"></div>
+    <a class="nav-item active" onclick="switchTab('tab-predict', this, 'workspace-glider', 0)">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+      Simulate Action
+    </a>
+    <a class="nav-item" onclick="switchTab('tab-ghostwriter', this, 'workspace-glider', 48)">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+      Ghostwriter
+    </a>
+    <a class="nav-item" onclick="switchTab('tab-debate', this, 'workspace-glider', 96)">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+      Adversarial Debate
+    </a>
+    <a class="nav-item" onclick="switchTab('tab-analytics', this, 'workspace-glider', 144)">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+      Neural Analytics
+    </a>
+    <a class="nav-item" onclick="switchTab('tab-history', this, 'workspace-glider', 192)">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+      Memory Logs
+    </a>
+  </nav>
+
+  <div class="nav-label">Configuration</div>
+  <nav class="nav-menu" id="config-menu">
+    <div class="nav-glider" id="config-glider" style="opacity: 0; transform: translateY(0px);"></div>
+    <a class="nav-item" onclick="switchTab('tab-settings', this, 'config-glider', 0)">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+      Neural Settings
+    </a>
+  </nav>
+
+  <div class="user-card">
+    <div class="user-avatar">{{ user.username|first|upper }}</div>
+    <div class="user-info">
+      <div class="user-name">{{ user.username }}</div>
+      <div class="user-status"><div class="status-dot"></div> Synced</div>
+    </div>
+    <a href="{% url 'logout' %}" style="color: var(--text-muted); transition: color 0.3s;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--text-muted)'">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+    </a>
+  </div>
+</aside>
+
+<!-- MAIN WORKSPACE -->
+<main class="main-content">
+
+  <!-- TAB 1: PREDICT -->
+  <div id="tab-predict" class="tab-pane active">
+    
+    <div class="view-header">
+      <h1 class="view-title" style="background: linear-gradient(to right, #fff, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Good Morning, {{ user.username }}.</h1>
+      <p class="view-subtitle">What scenario are we analyzing today?</p>
+    </div>
+
+    <div class="content-container" style="flex: 1; display: flex; flex-direction: column;">
       
-      <div class="status-pill">
-        <span class="status-dot"></span> Live
-      </div>
-      <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="Toggle theme">
-        <span id="themeIcon">☀️</span>
-      </button>
-    </div>
-  </div>
-
-  <div class="hero fade-up">
-    <h1>Your<br><em>Digital Twin.</em></h1>
-    <p>Predicts what you would do — based on your moods, habits, and vibes.</p>
-  </div>
-
-  <!-- ✅ FIX: Streak removed, only 2 columns for Stats -->
-  <div class="stats-row fade-up">
-    <div class="stat-card">
-      <div class="stat-num" id="stat-predictions">{{ total_predictions|default:"0" }}</div>
-      <div class="stat-label">Total Predictions</div>
-    </div>
-    <div class="stat-card">
-      <!-- ✅ FIX: Live Dynamic Accuracy Score connected to Backend -->
-      <div class="stat-num" id="stat-accuracy">{{ accuracy_percentage|default:"0" }}%</div>
-      <div class="stat-label">AI Accuracy</div>
-    </div>
-  </div>
-
-  <div class="card fade-up" style="padding: 12px; border-color: #1DB954; margin-bottom: 24px;">
-      
-      {% if mood_roast %}
-      <div class="roast-bubble" style="background: #1e1e2f; padding: 15px; border-radius: 12px; border-left: 5px solid #00f2fe; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
-          <p style="margin: 0; font-size: 1.1rem; color: #e0e0e0;">
-              <span style="font-size: 1.3rem;">🤖</span> 
-              <strong style="color: #00f2fe;">Twin says:</strong> 
-              <em style="color: #ff9a9e;">"{{ mood_roast }}"</em>
-          </p>
-      </div>
-      {% endif %}
-      <p style="color: #1DB954; font-weight: bold; margin-bottom: 8px; font-size: 13px;">🎵 Twin's Mood Vibe</p>
-      <iframe style="border-radius:12px" src="{{ spotify_link|default:'https://open.spotify.com/embed/playlist/37i9dQZF1DXcBWIGoYBM5M?utm_source=generator' }}" width="100%" height="152" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
-  </div>
-
-  <div class="card fade-up">
-    <div class="section-head">
-      <div class="section-icon">👤</div>
-      <div>
-        <div class="section-title">Configure Your Twin</div>
-        <div class="section-sub">Set your personality, habits, and vibes — so the AI can think like you</div>
-      </div>
-    </div>
-
-    <!-- Django Form Submission Setup -->
-    <form method="POST">
-      {% csrf_token %}
-      <input type="hidden" name="update_twin_settings" value="1">
-      <div class="form-grid">
-
-        <div class="field">
-          <label class="field-label">Sleep Schedule</label>
-          <select name="sleep_cycle" class="field-select">
-            <option value="early_bird" {% if user_pref.sleep_cycle == "early_bird" %}selected{% endif %}>🌅 Early Bird (6am)</option>
-            <option value="normal" {% if user_pref.sleep_cycle == "normal" %}selected{% endif %}>☀️ Normal (up by 10am)</option>
-            <option value="night_owl" {% if user_pref.sleep_cycle == "night_owl" or not user_pref.sleep_cycle %}selected{% endif %}>🦉 Night Owl (up till 3am)</option>
-          </select>
+      <div class="chat-window" id="outputArea">
+        <div style="text-align: center; color: var(--text-dim); font-size: 14px; font-weight: 600;">
+          Your digital twin is standing by.
         </div>
-
-        <div class="field">
-          <label class="field-label">Diet Preference</label>
-          <select name="diet_preference" class="field-select">
-            <option value="veg" {% if user_pref.diet_preference == "veg" %}selected{% endif %}>🌿 Pure Vegetarian</option>
-            <option value="nonveg" {% if user_pref.diet_preference == "nonveg" or not user_pref.diet_preference %}selected{% endif %}>🍗 Non-Vegetarian</option>
-          </select>
-        </div>
-
-        <div class="field full">
-          <label class="field-label">Favorite Color</label>
-          <input type="text" name="favorite_color" class="field-input" placeholder="e.g., Blue, Green..." value="{{ user_pref.favorite_color|default:'' }}">
-        </div>
-
-        <div class="field full">
-          <label class="field-label">Personality & Hobbies</label>
-          <textarea name="personality_traits" class="field-textarea" placeholder="e.g. I'm an introvert, interested in IoT and Python coding…">{{ user_pref.personality_traits|default:'' }}</textarea>
-        </div>
-
-      </div>
-
-      <div style="margin-top: 20px;">
-        <button type="submit" class="btn-secondary" onclick="showToast('Saving to Database...')">
-          <span>💾</span> Save Preferences
-        </button>
-      </div>
-    </form>
-  </div>
-
-  <div class="card fade-up">
-    <div class="section-head">
-      <div class="section-icon">🎭</div>
-      <div>
-        <div class="section-title">Personality Training Dashboard</div>
-        <div class="section-sub">Customize your Digital Twin — decide how it speaks and thinks</div>
-      </div>
-    </div>
-
-    <form method="POST">
-      {% csrf_token %}
-      <input type="hidden" name="update_twin_settings" value="1">
-      
-      <div class="form-grid">
-
-        <div class="field full">
-          <label class="field-label">💬 Twin's Nickname</label>
-          <input type="text" name="bot_nickname" class="field-input" maxlength="50" placeholder='Give your AI a nickname (e.g., "Ajay AI")' value="{{ twin_settings.bot_nickname|default:'' }}">
-        </div>
-
-        <div class="field full">
-          <label class="field-label">🎤 Tone / Personality</label>
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 8px;">
-            <label style="display: flex; align-items: center; padding: 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer;">
-              <input type="radio" name="tone_level" value="1" {% if twin_settings.tone_level == 1 %}checked{% endif %} style="margin-right: 8px;">
-              <span style="font-size: 12px; color: var(--text);">🎩 Professional</span>
-            </label>
-            <label style="display: flex; align-items: center; padding: 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer;">
-              <input type="radio" name="tone_level" value="2" {% if twin_settings.tone_level == 2 or not twin_settings.tone_level %}checked{% endif %} style="margin-right: 8px;">
-              <span style="font-size: 12px; color: var(--text);">😊 Casual</span>
-            </label>
-            <label style="display: flex; align-items: center; padding: 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer;">
-              <input type="radio" name="tone_level" value="3" {% if twin_settings.tone_level == 3 %}checked{% endif %} style="margin-right: 8px;">
-              <span style="font-size: 12px; color: var(--text);">😂 Witty/Savage</span>
-            </label>
-          </div>
-        </div>
-
-        <div class="field full">
-          <label class="field-label">🌐 Preferred Language</label>
-          <select name="preferred_language" class="field-select">
-            <option value="Hinglish" {% if twin_settings.preferred_language == "Hinglish" %}selected{% endif %}>Hinglish - Hindi + English Mix</option>
-            <option value="Hindi" {% if twin_settings.preferred_language == "Hindi" %}selected{% endif %}>Hindi - Pure Hindi</option>
-            <option value="English" {% if twin_settings.preferred_language == "English" %}selected{% endif %}>English - Pure English</option>
-          </select>
-        </div>
-
-        <div class="field full">
-          <label class="field-label">🧠 Current Mood</label>
-          <select name="last_mood" class="field-select">
-            <option value="Happy" {% if twin_settings.last_mood == "Happy" %}selected{% endif %}>😊 Happy</option>
-            <option value="Chill" {% if twin_settings.last_mood == "Chill" %}selected{% endif %}>😎 Chill</option>
-            <option value="Stressed" {% if twin_settings.last_mood == "Stressed" %}selected{% endif %}>😤 Stressed</option>
-            <option value="Motivated" {% if twin_settings.last_mood == "Motivated" %}selected{% endif %}>🔥 Motivated</option>
-            <option value="Tired" {% if twin_settings.last_mood == "Tired" %}selected{% endif %}>😫 Tired</option>
-            <option value="Focused" {% if twin_settings.last_mood == "Focused" %}selected{% endif %}>🎯 Focused</option>
-          </select>
-        </div>
-
-        <div class="field full">
-          <label class="field-label">📝 Custom Rules (Optional)</label>
-          <textarea name="custom_instructions" class="field-textarea" placeholder='Examples: "Always present yourself as a B.Tech student"'>{{ twin_settings.custom_instructions|default:'' }}</textarea>
-        </div>
-
-      </div>
-
-      <div style="margin-top: 20px;">
-        <button type="submit" class="btn-primary" onclick="showToast('Saving to Database...')">
-          <span>🎭</span> Save Personality
-        </button>
-      </div>
-    </form>
-  </div>
-
-  <div class="card fade-up">
-    <div class="section-head">
-      <div class="section-icon teal">⚡</div>
-      <div>
-        <div class="section-title">Predict — What Would You Do?</div>
-        <div class="section-sub">Describe a situation, and the AI will tell you your exact reaction</div>
-      </div>
-    </div>
-
-    <div class="chat-area">
-
-      <div>
-        <div class="chips-label">Quick Scenarios</div>
-        <div class="chips" id="chipsContainer">
-          <div class="chip" onclick="fillChip(this)">😴 Alarm at 7am, class at 9am</div>
-          <div class="chip" onclick="fillChip(this)">🌧️ Rainy Sunday, no plans</div>
-          <div class="chip" onclick="fillChip(this)">💸 End of month, money is running out</div>
-          <div class="chip" onclick="fillChip(this)">📱 Friend invited to a party, you're tired</div>
-          <div class="chip" onclick="fillChip(this)">🍕 2am hunger strike, kitchen is empty</div>
-          <div class="chip" onclick="fillChip(this)">📚 Exam tomorrow, studied nothing today</div>
-        </div>
-      </div>
-
-      <div>
-        <div class="chips-label" style="margin-bottom: 6px;">Scenario / Situation</div>
-        <div class="textarea-wrap">
-          <textarea
-            id="scenarioInput"
-            class="field-textarea"
-            placeholder="The more detail you give, the better… e.g. It's 11pm, project presentation is tomorrow, and the Groq API still isn't set up…"
-            maxlength="300"
-            oninput="updateChar(this)"
-            style="min-height: 110px; padding-bottom: 28px;"
-          ></textarea>
-          <span class="char-count" id="charCount">0 / 300</span>
-        </div>
-        <p style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">
-          💡 Shift+Enter for new line, Enter to send prediction
-        </p>
-      </div>
-
-      <div class="btn-row">
-        <button class="btn-primary" id="predictBtn" onclick="getPrediction()">
-          <span>✦</span> Ask Your Digital Twin
-        </button>
-        <button class="btn-icon" onclick="clearAll()" title="Clear">✕</button>
       </div>
 
       <div id="roastMeterContainer">
-          <div style="display: flex; justify-content: space-between;">
-              <span style="font-size: 11px; font-weight: bold; color: var(--accent3);">🔥 ROAST-O-METER</span>
-              <span id="roastStatus" style="font-size: 11px; font-weight: bold;">WAITING...</span>
+        <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
+          <span>Intensity Analysis</span>
+          <span id="roastStatus">Calculating...</span>
+        </div>
+        <div class="meter-track">
+          <div id="roastBar" class="meter-fill"></div>
+        </div>
+      </div>
+
+      <div class="input-dock">
+        <div class="input-area">
+          <div class="quick-chips">
+            <button class="chip" onclick="fillChip('Alarm at 7am, class at 9am. Go or sleep?')">Early class</button>
+            <button class="chip" onclick="fillChip('End of month, broke. Buy pizza?')">Broke pizza</button>
+            <button class="chip" onclick="fillChip('Rainy Sunday, no plans.')">Rainy day</button>
           </div>
-          <div class="meter-bar"><div id="roastBar" class="meter-fill"></div></div>
-      </div>
-
-      <div id="outputArea"></div>
-
-    </div>
-  </div>
-
-  <div class="card fade-up">
-    <div class="section-head">
-      <div class="section-icon red">⚔️</div>
-      <div>
-        <div class="section-title">AI vs AI Debate Mode</div>
-        <div class="section-sub">Watch your Twin go head-to-head against other AI characters</div>
-      </div>
-    </div>
-
-    <div class="form-grid">
-      <div class="field">
-        <label class="field-label">Who to Debate?</label>
-        <select id="opponentSelect" class="field-select" style="border-color: #ff4757;">
-          <option value="Strict Professor">👨‍🏫 Strict B.Tech Professor</option>
-          <option value="Shahrukh Khan">😎 Shahrukh Khan (SRK Style)</option>
-          <option value="Sharma Ji">👴 Nosy Neighbor Sharma Ji</option>
-        </select>
-      </div>
-
-      <div class="field">
-        <label class="field-label">Debate Topic</label>
-        <input type="text" id="debateTopic" class="field-input" placeholder="e.g. Should students use ChatGPT in exams or not?">
-      </div>
-    </div>
-
-    <div style="margin-top: 20px;">
-      <button class="btn-primary" id="startDebateBtn" onclick="startDebate()" style="background: #ff4757; color: white; width: 100%; justify-content: center;">
-        <span>🔥</span> Start the Fight
-      </button>
-    </div>
-
-    <div id="debateArea" style="margin-top: 24px; display: flex; flex-direction: column; gap: 14px; background: var(--surface2); border-radius: 12px; padding: 15px; min-height: 100px;">
-      <p style="text-align: center; color: var(--text-muted); font-size: 13px; margin: auto;">The debate script will play out here...</p>
-    </div>
-  </div>
-
-  <!-- ✅ FIX: History Ab Django backend se load hogi (Data leak fix) -->
-  <div class="card fade-up" id="historyCard" {% if not user_history %}style="display: none;"{% endif %}>
-    <div class="section-head">
-      <div class="section-icon orange">🕐</div>
-      <div>
-        <div class="section-title">Your Past Choices</div>
-        <div class="section-sub">This is what the AI uses to understand you</div>
-      </div>
-    </div>
-    <div class="history-list" id="historyList">
-      {% for chat in user_history %}
-      <div class="history-item">
-        <div class="h-dot"></div>
-        <div>
-          <div class="h-scenario">{{ chat.scenario|truncatechars:70 }}</div>
-          <div class="h-choice">→ {{ chat.choice_made|truncatechars:80 }}</div>
-          <div class="h-time">{{ chat.timestamp|timesince }} ago</div>
+          
+          <div class="chat-input-wrapper">
+            <textarea id="scenarioInput" class="chat-textarea" rows="1" placeholder="Describe a situation to your twin..." oninput="autoGrow(this)"></textarea>
+            <button class="send-btn" id="predictBtn" onclick="getPrediction()">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            </button>
+          </div>
         </div>
       </div>
-      {% endfor %}
+
     </div>
   </div>
 
-</div>
+  <!-- TAB: GHOSTWRITER (NEW) -->
+  <div id="tab-ghostwriter" class="tab-pane">
+    <div class="view-header">
+      <h1 class="view-title">Ghostwriter</h1>
+      <p class="view-subtitle">Let your Digital Twin draft the exact replies you would send.</p>
+    </div>
 
-<div id="profileModal" class="modal-overlay" onclick="if(event.target === this) closeProfileModal()">
-  <div class="modal-content">
-    <div class="modal-header">
-      <div style="display:flex; align-items:center; gap:12px;">
-        <div class="brand-icon" style="width: 50px; height: 50px; font-size: 24px; background: var(--surface2);">👤</div>
-        <div>
-          <h3 style="margin:0; font-size: 18px; color: var(--text);">{{ user.username|default:"Ajay" }}'s Profile</h3>
-          <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--accent);">B.Tech CS / AI Developer</p>
+    <div class="content-container">
+      <div style="background: var(--surface); padding: 32px; border: 1px solid var(--border); border-radius: var(--radius-lg); margin-bottom: 32px;">
+        <div class="form-grid">
+          <div class="form-group full">
+            <label class="form-label">Who sent you a message?</label>
+            <input type="text" id="gwSender" class="form-input" placeholder="e.g. My Boss, Ex-Girlfriend, HOD, Best Friend">
+          </div>
+          <div class="form-group full">
+            <label class="form-label">What did they say?</label>
+            <textarea id="gwMessage" class="form-textarea" placeholder="Paste their message here..."></textarea>
+          </div>
+          <div class="form-group full">
+            <button id="gwBtn" class="btn btn-primary" style="width: 100%;" onclick="generateGhostwriterReply()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+              Ghostwrite My Reply
+            </button>
+          </div>
         </div>
       </div>
-      <button class="btn-icon" onclick="closeProfileModal()" style="border:none; background:transparent; margin-top:-5px;">✕</button>
+
+      <div id="gwOutputArea">
+        <!-- Reply will spawn here -->
+      </div>
     </div>
-    
-    <div class="profile-grid">
-      <div class="p-card">
-        <span class="p-label">Twin Nickname</span>
-        <span class="p-val" id="prof-twin-name">{{ twin_settings.bot_nickname|default:"Not Set" }}</span>
-      </div>
-      <div class="p-card">
-        <span class="p-label">Current Mood</span>
-        <span class="p-val" id="prof-mood">{{ twin_settings.last_mood|default:"Chill" }}</span>
-      </div>
-      <div class="p-card">
-        <span class="p-label">Language</span>
-        <span class="p-val">{{ twin_settings.preferred_language|default:"Hinglish" }}</span>
-      </div>
-      <div class="p-card">
-        <span class="p-label">Predictions Used</span>
-        <span class="p-val" id="prof-preds-count">{{ total_predictions|default:"0" }}</span>
-      </div>
+  </div>
+
+  <!-- TAB 2: DEBATE -->
+  <div id="tab-debate" class="tab-pane">
+    <div class="view-header">
+      <h1 class="view-title">Adversarial Protocol</h1>
+      <p class="view-subtitle">Test your digital clone against other personas in real-time.</p>
     </div>
 
-    <div style="margin-bottom: 20px;">
-      <span class="p-label" style="margin-bottom: 6px;">Core Personality Traits</span>
-      <div style="background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; font-size: 13px; color: var(--text-mid); line-height: 1.5;" id="prof-traits-text">
-        {{ user_pref.personality_traits|default:"No traits set yet!" }}
+    <div class="content-container">
+      <div style="background: var(--surface); padding: 32px; border: 1px solid var(--border); border-radius: var(--radius-lg);">
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Opponent Persona</label>
+            <select id="opponentSelect" class="form-select">
+              <option value="Strict Professor">Strict Professor</option>
+              <option value="Shahrukh Khan">Movie Star</option>
+              <option value="Sharma Ji">Nosy Neighbor</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Debate Topic</label>
+            <input type="text" id="debateTopic" class="form-input" placeholder="e.g. AI replacing jobs">
+          </div>
+          <div class="form-group full">
+            <button id="startDebateBtn" class="btn btn-primary" style="width: 100%;" onclick="startDebate()">Initialize Fight Sequence</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="debate-log" id="debateArea">
+        <div style="text-align: center; color: var(--text-dim); font-size: 14px;">Debate transcript will output here...</div>
       </div>
     </div>
-    
-    <a href="{% url 'logout' %}" style="text-decoration: none;">
-      <button class="btn-danger">
-        <span>🚪</span> Logout from Twin
-      </button>
-    </a>
   </div>
-</div>
+
+  <!-- TAB: ANALYTICS & ROUTINE (NEW) -->
+  <div id="tab-analytics" class="tab-pane">
+    <div class="view-header">
+      <h1 class="view-title">Neural Analytics</h1>
+      <p class="view-subtitle">Cognitive profiling and AI-generated daily routines.</p>
+    </div>
+
+    <div class="content-container">
+      
+      <!-- Charts Grid -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 48px;">
+        <!-- Radar Chart -->
+        <div style="background: var(--surface); padding: 24px; border: 1px solid var(--border); border-radius: var(--radius-lg);">
+          <h3 style="font-size: 14px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 16px; text-align: center;">Cognitive Profile</h3>
+          <canvas id="radarChart" height="250"></canvas>
+        </div>
+        <!-- Line Chart -->
+        <div style="background: var(--surface); padding: 24px; border: 1px solid var(--border); border-radius: var(--radius-lg);">
+          <h3 style="font-size: 14px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 16px; text-align: center;">Accuracy Trend</h3>
+          <canvas id="lineChart" height="250"></canvas>
+        </div>
+      </div>
+
+      <!-- Routine Generator -->
+      <div style="background: linear-gradient(145deg, rgba(167, 139, 250, 0.1) 0%, rgba(255,255,255,0.02) 100%); padding: 40px; border: 1px solid rgba(167, 139, 250, 0.2); border-radius: var(--radius-lg);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+          <div>
+            <h2 style="font-size: 24px; font-family: var(--font-display); font-weight: 900; margin-bottom: 4px;">Optimal Routine Generator</h2>
+            <p style="color: var(--text-muted); font-size: 14px;">Let your Twin map out your perfect day based on your current metrics.</p>
+          </div>
+          <button id="genRoutineBtn" class="btn btn-primary" onclick="generateRoutine()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+            Generate Schedule
+          </button>
+        </div>
+        
+        <div id="routineOutput" class="routine-timeline">
+          <!-- Routine items will spawn here -->
+          <div style="text-align: center; color: var(--text-dim); padding: 20px;">No routine generated yet. Click the button above.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- TAB 3: HISTORY -->
+  <div id="tab-history" class="tab-pane">
+    <div class="view-header">
+      <h1 class="view-title">Memory Logs</h1>
+      <p class="view-subtitle">Your past predictions and behavioral analysis data.</p>
+    </div>
+    
+    <div class="content-container">
+      
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-val" id="stat-predictions">{{ total_predictions|default:"0" }}</div>
+          <div class="stat-lbl">Predictions Logged</div>
+        </div>
+        <div class="stat-card" style="background: rgba(167, 139, 250, 0.05); border-color: rgba(167, 139, 250, 0.2);">
+          <div class="stat-val" style="color: var(--accent);" id="stat-accuracy">{{ accuracy_percentage|default:"0" }}<span style="font-size: 32px;">%</span></div>
+          <div class="stat-lbl">Neural Accuracy</div>
+        </div>
+      </div>
+
+      <div class="history-list" id="historyList">
+        {% if user_history %}
+          {% for chat in user_history %}
+          <div class="history-item">
+            <div class="h-scen">{{ chat.scenario }}</div>
+            <div class="h-pred">↳ {{ chat.choice_made }}</div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div style="text-align: center; padding: 48px; color: var(--text-dim); font-size: 16px;">No memory logs established yet.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 4: SETTINGS -->
+  <div id="tab-settings" class="tab-pane">
+    <div class="view-header">
+      <h1 class="view-title">Neural Settings</h1>
+      <p class="view-subtitle">Configure your twin's personality and core traits.</p>
+    </div>
+
+    <div class="content-container">
+      
+      <form method="POST" style="margin-bottom: 48px;">
+        {% csrf_token %}
+        <input type="hidden" name="update_twin_settings" value="1">
+        
+        <div style="background: var(--surface); padding: 40px; border: 1px solid var(--border); border-radius: var(--radius-lg); margin-bottom: 32px;">
+          <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 24px;">Core Directives</h2>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Circadian Rhythm (Sleep)</label>
+              <select name="sleep_cycle" class="form-select">
+                <option value="early_bird" {% if user_pref.sleep_cycle == "early_bird" %}selected{% endif %}>Early Bird (6 AM)</option>
+                <option value="normal" {% if user_pref.sleep_cycle == "normal" %}selected{% endif %}>Standard (10 AM)</option>
+                <option value="night_owl" {% if user_pref.sleep_cycle == "night_owl" or not user_pref.sleep_cycle %}selected{% endif %}>Night Owl (3 AM)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Fuel (Diet)</label>
+              <select name="diet_preference" class="form-select">
+                <option value="veg" {% if user_pref.diet_preference == "veg" %}selected{% endif %}>Vegetarian</option>
+                <option value="nonveg" {% if user_pref.diet_preference == "nonveg" or not user_pref.diet_preference %}selected{% endif %}>Non-Vegetarian</option>
+              </select>
+            </div>
+            <div class="form-group full">
+              <label class="form-label">Behavioral Traits</label>
+              <textarea name="personality_traits" class="form-textarea" placeholder="Describe your personality...">{{ user_pref.personality_traits|default:'' }}</textarea>
+            </div>
+          </div>
+        </div>
+
+        <div style="background: var(--surface); padding: 40px; border: 1px solid var(--border); border-radius: var(--radius-lg); margin-bottom: 32px;">
+          <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 24px;">Personality Tuning</h2>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Twin Alias</label>
+              <input type="text" name="bot_nickname" class="form-input" value="{{ twin_settings.bot_nickname|default:'' }}" placeholder="e.g. AI-Jay">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Current State (Mood)</label>
+              <select name="last_mood" class="form-select">
+                <option value="Happy" {% if twin_settings.last_mood == "Happy" %}selected{% endif %}>Elevated / Happy</option>
+                <option value="Chill" {% if twin_settings.last_mood == "Chill" %}selected{% endif %}>Baseline / Chill</option>
+                <option value="Stressed" {% if twin_settings.last_mood == "Stressed" %}selected{% endif %}>Overclocked / Stressed</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Sync Configuration</button>
+      </form>
+
+    </div>
+  </div>
+
+</main>
 
 <script>
-// ── State ──
-// ✅ FIX: Removed localStorage to stop old accounts data from leaking!
 let predictionsCount = parseInt("{{ total_predictions|default:'0' }}", 10);
 
-// ── Init ──
-document.addEventListener('DOMContentLoaded', () => {
-  setupEnterKey();
-  const saved = localStorage.getItem('dt_theme');
-  if (saved === 'light') setTheme('light');
+// Tab Switching Logic with Holographic Glider
+function switchTab(tabId, btn, gliderId, offset) {
+  // Hide all tabs
+  document.querySelectorAll('.tab-pane').forEach(tab => tab.classList.remove('active'));
+  // Show target tab
+  document.getElementById(tabId).classList.add('active');
+  
+  // Update nav buttons
+  if(btn) {
+    document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+    btn.classList.add('active');
+    
+    // Glider Animation
+    document.querySelectorAll('.nav-glider').forEach(g => g.style.opacity = '0');
+    const glider = document.getElementById(gliderId);
+    glider.style.opacity = '1';
+    glider.style.transform = `translateY(${offset}px)`;
+  }
+}
+
+// Auto-grow textarea
+function autoGrow(el) {
+  el.style.height = "5px";
+  el.style.height = (el.scrollHeight) + "px";
+}
+
+// Enter to submit
+document.getElementById('scenarioInput').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { 
+    e.preventDefault(); 
+    if (this.value.trim()) getPrediction(); 
+  }
 });
 
-// ── Theme ──
-function toggleTheme() {
-  const current = document.documentElement.getAttribute('data-theme');
-  setTheme(current === 'dark' ? 'light' : 'dark');
-}
-function setTheme(t) {
-  document.documentElement.setAttribute('data-theme', t);
-  document.getElementById('themeIcon').textContent = t === 'dark' ? '☀️' : '🌙';
-  localStorage.setItem('dt_theme', t);
-}
-
-// ── Profile Modal Functions ──
-function openProfileModal() { document.getElementById('profileModal').classList.add('active'); }
-function closeProfileModal() { document.getElementById('profileModal').classList.remove('active'); }
-
-// ── UI Helpers ──
-function setupEnterKey() {
-  const ta = document.getElementById('scenarioInput');
-  ta.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (this.value.trim()) getPrediction(); }
-  });
-}
-function fillChip(el) {
-  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-  el.classList.add('active');
-  const raw = el.textContent.trim();
-  const text = raw.replace(/^[\u{1F300}-\u{1FAD6}\u{1F600}-\u{1F64F}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]+\s*/u, '');
+function fillChip(text) {
   const ta = document.getElementById('scenarioInput');
   ta.value = text;
+  autoGrow(ta);
   ta.focus();
-  updateChar(ta);
-}
-function updateChar(el) { document.getElementById('charCount').textContent = el.value.length + ' / 300'; }
-function clearAll() {
-  document.getElementById('scenarioInput').value = '';
-  document.getElementById('charCount').textContent = '0 / 300';
-  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-  document.getElementById('outputArea').innerHTML = '';
-  document.getElementById('roastMeterContainer').style.display = 'none';
 }
 
-// ── Main Prediction ──
 async function getPrediction() {
   const scenario = document.getElementById('scenarioInput').value.trim();
-  if (!scenario) { showToast('Write a scenario first! ✍️'); return; }
+  if (!scenario) return;
 
   const btn = document.getElementById('predictBtn');
+  const outArea = document.getElementById('outputArea');
   btn.disabled = true;
-  btn.innerHTML = '<span class="typing-indicator"><span></span><span></span><span></span></span> Twin is thinking…';
-  showTyping();
+  
+  // Clear input
+  document.getElementById('scenarioInput').value = '';
+  document.getElementById('scenarioInput').style.height = 'auto';
+
+  // Show typing bubble with waveform
+  const loadBubble = document.createElement('div');
+  loadBubble.className = 'output-bubble';
+  loadBubble.innerHTML = `
+    <div class="bubble-title">
+      <div class="status-dot"></div> Processing Neural Path...
+      <div class="waveform"><span></span><span></span><span></span><span></span></div>
+    </div>`;
+  outArea.appendChild(loadBubble);
+  loadBubble.scrollIntoView({ behavior: 'smooth', block: 'end' });
 
   try {
     const formData = new FormData();
@@ -658,74 +626,54 @@ async function getPrediction() {
       body: formData
     });
 
-    if (!res.ok) throw new Error('Django Backend Error');
+    if (!res.ok) throw new Error('Network error');
     const result = await res.json();
     
     if (result.ok) {
-        // ✅ NEW: Passes the prediction ID to render the rating buttons
-        showOutput(result.data.prediction, result.data.prediction_id);
+        outArea.removeChild(loadBubble);
+        showOutput(result.data.prediction, result.data.prediction_id, outArea);
         triggerRoastMeter(result.data.prediction); 
         savePredictionToDOM(scenario, result.data.prediction); 
     } else {
         throw new Error(result.error);
     }
-    
   } catch (err) {
-    showError(err.message);
+    outArea.removeChild(loadBubble);
+    outArea.innerHTML += `
+      <div class="output-bubble" style="border-color: var(--danger);">
+        <div class="bubble-title" style="color: var(--danger);">⚠️ System Fault</div>
+        <div class="bubble-text" style="color: var(--danger); font-size: 15px;">${err.message}</div>
+      </div>`;
   } finally {
     btn.disabled = false;
-    btn.innerHTML = '<span>✦</span> Ask Your Digital Twin';
   }
 }
 
-function showTyping() {
-  document.getElementById('outputArea').innerHTML = `
-    <div class="output-card" style="animation: fadeUp 0.3s ease;">
-      <div class="output-header"><div class="output-tag"><span class="status-dot"></span> Twin is thinking…</div></div>
-      <div class="typing-indicator" style="margin-top: 8px;"><span></span><span></span><span></span></div>
-    </div>`;
-}
-
-function showError(msg) {
-  document.getElementById('outputArea').innerHTML = `
-    <div class="output-card" style="border-color: #ff4757; animation: fadeUp 0.3s ease;">
-      <div class="output-header"><div class="output-tag" style="color:#ff4757;">⚠️ Error</div></div>
-      <p style="color: #ff4757; font-size: 14px;">${msg}</p>
-    </div>`;
-}
-
-// ✅ FIX: Integrated Accuracy Rating Buttons here
-function showOutput(text, predictionId) {
-  const hour = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-  document.getElementById('outputArea').innerHTML = `
-    <div class="output-card" id="outCard" style="animation: fadeUp 0.4s ease;">
-      <div class="output-header">
-        <div class="output-tag"><span class="status-dot"></span> Twin Response</div>
-        <button class="copy-btn" onclick="copyText()">📋 Copy</button>
+function showOutput(text, predictionId, container) {
+  const html = `
+    <div class="output-bubble" id="rating-box-${predictionId}">
+      <div class="bubble-title" style="display:flex; justify-content:space-between;">
+        <span>✨ Twin Output</span>
+        <button onclick="navigator.clipboard.writeText('${escapeHtml(text)}')" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; font-size:11px; font-weight:bold; letter-spacing:1px;">COPY</button>
       </div>
-      <p class="output-text" id="outText">${escapeHtml(text)}</p>
-      <div class="output-footer">
-        <span class="meta-item">🕐 ${hour}</span>
-      </div>
+      <p class="bubble-text">${escapeHtml(text)}</p>
       
-      <!-- ✅ NAYA: REVIEW SYSTEM FOR ACCURACY -->
-      <div class="reaction-row" id="rating-box-${predictionId}">
-        <span style="font-size:12px; color:var(--text-muted); align-self:center; margin-right:8px;">Is this accurate?</span>
-        <div class="mood-pill" onclick="submitRating(${predictionId}, true, this)">✅ Yes, Agree</div>
-        <div class="mood-pill" onclick="submitRating(${predictionId}, false, this)">❌ Not really</div>
+      <div class="action-row">
+        <button class="action-pill" onclick="submitRating(${predictionId}, true, this)">✅ Accurate</button>
+        <button class="action-pill" onclick="submitRating(${predictionId}, false, this)">❌ Deviation</button>
       </div>
     </div>`;
-  document.getElementById('outCard').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  container.insertAdjacentHTML('beforeend', html);
+  container.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'end' });
 }
 
-// ✅ NAYA: Function to submit the rating to Django and update score dynamically
 async function submitRating(predictionId, isAccurate, btnElement) {
     const box = document.getElementById(`rating-box-${predictionId}`);
-    box.querySelectorAll('.mood-pill').forEach(btn => btn.classList.add('disabled'));
+    box.querySelectorAll('.action-pill').forEach(btn => btn.style.display = 'none');
     
-    btnElement.classList.remove('disabled');
+    btnElement.style.display = 'inline-flex';
     btnElement.classList.add(isAccurate ? 'active-agree' : 'active-disagree');
-    btnElement.innerHTML = isAccurate ? '✅ Rating Saved!' : '❌ Rating Saved!';
+    btnElement.innerText = 'Log Saved';
 
     try {
         const formData = new FormData();
@@ -741,13 +689,9 @@ async function submitRating(predictionId, isAccurate, btnElement) {
 
         const result = await res.json();
         if (result.ok) {
-            // Live Update Accuracy Percentage on the screen
-            document.getElementById('stat-accuracy').textContent = result.data.new_accuracy + '%';
-            showToast('Twin learned from your feedback! 🧠');
+            document.getElementById('stat-accuracy').innerHTML = result.data.new_accuracy + '<span style="font-size: 32px;">%</span>';
         }
-    } catch (err) {
-        console.error("Failed to submit rating");
-    }
+    } catch (err) { console.error("Rating failed"); }
 }
 
 function triggerRoastMeter(text) {
@@ -755,91 +699,230 @@ function triggerRoastMeter(text) {
   const bar = document.getElementById('roastBar');
   const status = document.getElementById('roastStatus');
   container.style.display = 'block';
+  
   let score = 15 + Math.floor(Math.random() * 20); 
-  const savageWords = ['sleep', 'bro', 'dude', 'idiot', 'procrastinator', 'shame', 'study', 'reels', 'kid', 'shut up', 'loser', 'useless', 'lazy', 'timepass'];
+  const savageWords = ['sleep', 'bro', 'idiot', 'lazy', 'loser', 'dumb'];
   savageWords.forEach(w => { if(text.toLowerCase().includes(w)) score += 18; });
-  if (text.includes('!')) score += 15;
   if (text.length > 150) score += 20;
   score = Math.min(score, 100);
-  bar.style.width = '0%'; bar.style.transition = 'none';
+  
+  bar.style.width = '0%';
   setTimeout(() => {
-    bar.style.transition = 'width 1s cubic-bezier(0.175, 0.885, 0.32, 1.275)'; 
-    bar.style.width = score + '%';
-    if(score < 45) { status.innerText = "CHILL 😊"; status.style.color = "#35f1c8"; } 
-    else if(score < 75) { status.innerText = "SAVAGE 💀"; status.style.color = "#f1c40f"; } 
-    else { status.innerText = "BRUTAL DESTRUCTION 🌋"; status.style.color = "#e74c3c"; }
+      bar.style.width = score + '%';
+      if(score < 40) { status.innerText = "NOMINAL"; status.style.color = "var(--success)"; } 
+      else if(score < 75) { status.innerText = "ELEVATED"; status.style.color = "var(--accent)"; } 
+      else { status.innerText = "CRITICAL"; status.style.color = "var(--danger)"; }
   }, 50);
 }
 
 async function startDebate() {
   const topic = document.getElementById('debateTopic').value.trim();
   const opponent = document.getElementById('opponentSelect').value;
-  if (!topic) { showToast('Write a debate topic first! 🥊'); return; }
+  if (!topic) return;
+  
   const btn = document.getElementById('startDebateBtn');
   const area = document.getElementById('debateArea');
-  btn.disabled = true; btn.innerHTML = '<span>⏳</span> Scripting Fight...';
-  area.innerHTML = '<div class="typing-indicator" style="margin: auto;"><span></span><span></span><span></span></div>';
+  btn.disabled = true; btn.innerText = 'Connecting...';
+  area.innerHTML = '<div style="color: var(--accent); text-align: center; font-size: 13px; margin: auto;">Establishing Neural Link...</div>';
 
   try {
-    const formData = new FormData();
-    formData.append('get_debate', 'true'); formData.append('topic', topic); formData.append('opponent', opponent);
-    const res = await fetch(window.location.href, { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}', 'X-Requested-With': 'XMLHttpRequest' }, body: formData });
-    const result = await res.json();
-    area.innerHTML = ''; 
-    if (result.ok) {
-        result.data.script.forEach((line, index) => {
-          setTimeout(() => {
-            const isTwin = line.speaker === "Twin";
-            const align = isTwin ? 'flex-end' : 'flex-start';
-            const bgColor = isTwin ? 'var(--accent-dim)' : 'var(--surface)';
-            const borderColor = isTwin ? 'var(--accent)' : '#ff4757';
-            const nameColor = isTwin ? 'var(--accent)' : '#ff4757';
-            const bubble = document.createElement('div');
-            bubble.style.cssText = `align-self: ${align}; background: ${bgColor}; border: 1px solid ${borderColor}; padding: 12px 16px; border-radius: 12px; max-width: 85%; animation: fadeUp 0.4s ease;`;
-            bubble.innerHTML = `<div style="font-size: 11px; font-weight: bold; color: ${nameColor}; margin-bottom: 4px; text-transform: uppercase;">${isTwin ? '🤖 My Twin' : '🥊 ' + opponent}</div><div style="font-size: 14px; line-height: 1.5; color: var(--text);">${line.text}</div>`;
-            area.appendChild(bubble); area.scrollTop = area.scrollHeight; 
-          }, index * 1800); 
-        });
-    } else { throw new Error(result.error); }
-  } catch (err) { area.innerHTML = `<p style="color: #ff4757; text-align:center;">Error: ${err.message}</p>`; } 
-  finally { btn.disabled = false; btn.innerHTML = '<span>🔥</span> Start the Fight'; }
+      const formData = new FormData();
+      formData.append('get_debate', 'true'); formData.append('topic', topic); formData.append('opponent', opponent);
+      const res = await fetch(window.location.href, { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}', 'X-Requested-With': 'XMLHttpRequest' }, body: formData });
+      const result = await res.json();
+      area.innerHTML = ''; 
+      
+      if (result.ok) {
+          result.data.script.forEach((line, index) => {
+              setTimeout(() => {
+                  const isTwin = line.speaker === "Twin";
+                  const bubble = document.createElement('div');
+                  bubble.className = `debate-bubble ${isTwin ? 'twin' : 'opponent'}`;
+                  bubble.innerHTML = `
+                      <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; opacity: 0.7; letter-spacing: 1px;">
+                          ${isTwin ? '🤖 TWIN' : '🥊 ' + opponent}
+                      </div>
+                      <div>${line.text}</div>`;
+                  area.appendChild(bubble);
+                  area.scrollTop = area.scrollHeight;
+              }, index * 1500); 
+          });
+      } else { throw new Error(result.error); }
+  } catch (err) { area.innerHTML = `<div style="color: var(--danger); text-align:center; font-size: 13px; margin: auto;">Failed to connect: ${err.message}</div>`; } 
+  finally { btn.disabled = false; btn.innerText = 'Initialize Fight Sequence'; }
 }
 
-// ✅ FIX: Replaces localstorage, appends newly created prediction straight to DOM
 function savePredictionToDOM(scenario, prediction) {
   predictionsCount++;
   document.getElementById('stat-predictions').textContent = predictionsCount;
-  document.getElementById('prof-preds-count').textContent = predictionsCount;
-
-  const list = document.getElementById('historyList');
-  document.getElementById('historyCard').style.display = ''; 
-  const cleanScenario = escapeHtml(scenario.length > 70 ? scenario.substring(0, 70) + '…' : scenario);
-  const cleanPred = escapeHtml(prediction.length > 80 ? prediction.substring(0, 80) + '…' : prediction);
   
+  const list = document.getElementById('historyList');
+  if(list.children.length > 0 && list.children[0].textContent.includes('No memory')) list.innerHTML = '';
+
   const newItem = `
-    <div class="history-item" style="animation: fadeUp 0.3s ease;">
-      <div class="h-dot"></div>
-      <div>
-        <div class="h-scenario">${cleanScenario}</div>
-        <div class="h-choice">→ ${cleanPred}</div>
-        <div class="h-time">Just now</div>
-      </div>
-    </div>`;
+      <div class="history-item" style="animation: fadeIn 0.4s ease;">
+          <div class="h-scen">${escapeHtml(scenario)}</div>
+          <div class="h-pred">↳ ${escapeHtml(prediction)}</div>
+      </div>`;
   list.insertAdjacentHTML('afterbegin', newItem);
 }
 
-function copyText() {
-  const t = document.getElementById('outText');
-  if (t) navigator.clipboard.writeText(t.textContent).then(() => showToast('Copied! 📋'));
+// ================= NEW: ROUTINE GENERATOR =================
+async function generateRoutine() {
+    const btn = document.getElementById('genRoutineBtn');
+    const out = document.getElementById('routineOutput');
+    
+    btn.disabled = true;
+    btn.innerHTML = 'Generating... <div class="status-dot" style="display:inline-block; margin-left:8px;"></div>';
+    out.innerHTML = '<div style="text-align: center; color: var(--accent); padding: 40px; animation: pulse 1.5s infinite;">Analyzing behavior metrics & syncing timeline...</div>';
+
+    try {
+        const formData = new FormData();
+        formData.append('get_routine', 'true');
+
+        const res = await fetch(window.location.href, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}', 'X-Requested-With': 'XMLHttpRequest' },
+            body: formData
+        });
+
+        const result = await res.json();
+        out.innerHTML = '';
+
+        if (result.ok) {
+            result.data.routine.forEach((item, index) => {
+                setTimeout(() => {
+                    const html = `
+                    <div class="routine-item">
+                        <div class="r-time">${item.time}</div>
+                        <div class="r-content">
+                            <div class="r-act">${item.activity}</div>
+                            <div class="r-desc">${item.description}</div>
+                        </div>
+                    </div>`;
+                    out.insertAdjacentHTML('beforeend', html);
+                }, index * 400); // Staggered animation
+            });
+        } else {
+            throw new Error(result.error);
+        }
+    } catch(err) {
+        out.innerHTML = `<div style="color: var(--danger); text-align: center;">System Error: ${err.message}</div>`;
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg> Generate Schedule';
+    }
 }
 
-function showToast(msg) {
-  const t = document.createElement('div');
-  t.style.cssText = `position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--border-hover); color: var(--text); padding: 10px 20px; border-radius: 999px; z-index: 9999; animation: fadeUp 0.3s ease; box-shadow: 0 8px 24px rgba(0,0,0,0.3);`;
-  t.textContent = msg;
-  document.body.appendChild(t);
-  setTimeout(() => t.remove(), 2400);
+// ================= NEW: GHOSTWRITER =================
+async function generateGhostwriterReply() {
+    const sender = document.getElementById('gwSender').value.trim();
+    const message = document.getElementById('gwMessage').value.trim();
+    const btn = document.getElementById('gwBtn');
+    const out = document.getElementById('gwOutputArea');
+
+    if (!sender || !message) {
+        alert("Please enter both the sender and the message.");
+        return;
+    }
+    
+    btn.disabled = true;
+    btn.innerHTML = 'Drafting reply... <div class="status-dot" style="display:inline-block; margin-left:8px;"></div>';
+    out.innerHTML = '<div style="text-align: center; color: var(--accent); padding: 40px; animation: pulse 1.5s infinite;">Twin is formulating a response...</div>';
+
+    try {
+        const formData = new FormData();
+        formData.append('get_ghostwriter', 'true');
+        formData.append('sender', sender);
+        formData.append('message', message);
+
+        const res = await fetch(window.location.href, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}', 'X-Requested-With': 'XMLHttpRequest' },
+            body: formData
+        });
+
+        const result = await res.json();
+
+        if (result.ok) {
+            out.innerHTML = `
+            <div class="output-bubble" style="border-color: var(--accent);">
+              <div class="bubble-title" style="display:flex; justify-content:space-between;">
+                <span>✨ Twin's Draft</span>
+                <button onclick="navigator.clipboard.writeText('${escapeHtml(result.data.reply)}'); this.innerText='COPIED!'" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; font-size:11px; font-weight:bold; letter-spacing:1px; transition: color 0.3s;">COPY REPLY</button>
+              </div>
+              <p class="bubble-text" style="font-size: 24px;">${escapeHtml(result.data.reply)}</p>
+            </div>`;
+        } else {
+            throw new Error(result.error);
+        }
+    } catch(err) {
+        out.innerHTML = `<div style="color: var(--danger); text-align: center;">System Error: ${err.message}</div>`;
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg> Ghostwrite My Reply';
+    }
 }
+
+// ================= CHART.JS INIT =================
+document.addEventListener("DOMContentLoaded", function() {
+    // Colors matching theme
+    const accent = '#a78bfa';
+    const surface = 'rgba(255,255,255,0.05)';
+    const textMuted = 'rgba(255,255,255,0.5)';
+
+    // Radar Chart
+    const ctxRadar = document.getElementById('radarChart').getContext('2d');
+    new Chart(ctxRadar, {
+        type: 'radar',
+        data: {
+            labels: ['Logic', 'Humor', 'Sarcasm', 'Empathy', 'Laziness'],
+            datasets: [{
+                label: 'Twin Profile',
+                data: [65, 80, 90, 40, 85], // Hardcoded aesthetic data
+                backgroundColor: 'rgba(167, 139, 250, 0.2)',
+                borderColor: accent,
+                pointBackgroundColor: '#fff',
+                borderWidth: 2,
+            }]
+        },
+        options: {
+            scales: {
+                r: {
+                    angleLines: { color: surface },
+                    grid: { color: surface },
+                    pointLabels: { color: textMuted, font: { family: 'Satoshi' } },
+                    ticks: { display: false } // Hide numbers
+                }
+            },
+            plugins: { legend: { display: false } }
+        }
+    });
+
+    // Line Chart
+    const ctxLine = document.getElementById('lineChart').getContext('2d');
+    new Chart(ctxLine, {
+        type: 'line',
+        data: {
+            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            datasets: [{
+                label: 'Accuracy %',
+                data: [50, 55, 60, 68, {{ accuracy_percentage|default:"75" }}, {{ accuracy_percentage|default:"75" }}, {{ accuracy_percentage|default:"80" }}], 
+                borderColor: '#34d399',
+                backgroundColor: 'rgba(52, 211, 153, 0.1)',
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            scales: {
+                x: { grid: { display: false }, ticks: { color: textMuted } },
+                y: { grid: { color: surface }, ticks: { color: textMuted }, suggestedMin: 0, suggestedMax: 100 }
+            },
+            plugins: { legend: { display: false } }
+        }
+    });
+});
 
 function escapeHtml(str) { return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 </script>
