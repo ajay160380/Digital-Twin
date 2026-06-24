@@ -18,6 +18,10 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://ajay160380-digital-twin.hf.space',
+    'https://*.hf.space',
+]
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',

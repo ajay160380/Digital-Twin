@@ -1,3 +1,11 @@
+---
+title: Digital Twin
+emoji: 🧠
+colorFrom: blue
+colorTo: green
+sdk: docker
+pinned: false
+---
 <div align="center">
   <h1>🧠 Digital Twin — AI Doppelganger</h1>
   <p><strong>Your Personal AI Clone. It thinks like you, talks like you, and acts like you.</strong></p>
