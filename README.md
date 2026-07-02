@@ -10,7 +10,8 @@ pinned: false
   <h1>🧠 Digital Twin — AI Doppelganger</h1>
   <p><strong>Your Personal AI Clone. It thinks like you, talks like you, and acts like you.</strong></p>
   
-  <a href="https://digital-twin-jqav.onrender.com"><strong>🔴 View Live Demo</strong></a>
+  <a href="https://ajay160380-digital-twin.hf.space"><strong>🚀 View Live Demo (Hugging Face) - Main</strong></a><br>
+  <a href="https://digital-twin-jqav.onrender.com"><strong>🔴 View Live Demo (Render)</strong></a>
   <br><br>
   
   ![Python](https://img.shields.io/badge/Python-3.14-3776AB?style=for-the-badge&logo=python&logoColor=white)
